@@ -1,6 +1,9 @@
+use crate::core_crypto::algorithms::misc::*;
 use crate::core_crypto::commons::math::decomposition::DecompositionLevel;
 use crate::core_crypto::commons::numeric::{Numeric, UnsignedInteger};
-use crate::core_crypto::commons::parameters::DecompositionBaseLog;
+use crate::core_crypto::commons::parameters::{
+    CiphertextModulus, DecompositionBaseLog, DecompositionLevelCount,
+};
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
@@ -85,6 +88,179 @@ where
     /// let decomposer =
     ///     SignedDecomposer::<u32>::new(DecompositionBaseLog(4), DecompositionLevelCount(3));
     /// let output = decomposer.decompose(2u32.pow(19)).next().unwrap();
+    /// assert_eq!(output.level(), DecompositionLevel(3));
+    /// ```
+    pub fn level(&self) -> DecompositionLevel {
+        DecompositionLevel(self.level)
+    }
+}
+
+/// A member of the decomposition.
+///
+/// If we decompose a value $\theta$ as a sum $\sum\_{i=1}^l\tilde{\theta}\_i\frac{q}{B^i}$, this
+/// represents a $\tilde{\theta}\_i$.
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+pub struct DecompositionTermNonNative<T>
+where
+    T: UnsignedInteger,
+{
+    level: usize,
+    base_log: usize,
+    value: T,
+    ciphertext_modulus: CiphertextModulus<T>,
+}
+
+impl<T> DecompositionTermNonNative<T>
+where
+    T: UnsignedInteger,
+{
+    // Creates a new decomposition term.
+    pub(crate) fn new(
+        level: DecompositionLevel,
+        base_log: DecompositionBaseLog,
+        value: T,
+        ciphertext_modulus: CiphertextModulus<T>,
+    ) -> DecompositionTermNonNative<T> {
+        DecompositionTermNonNative {
+            level: level.0,
+            base_log: base_log.0,
+            value,
+            ciphertext_modulus,
+        }
+    }
+
+    /// Turn this term into a summand.
+    ///
+    /// If our member represents one $\tilde{\theta}\_i$ of the decomposition, this method returns
+    /// $\tilde{\theta}\_i\frac{q}{B^i}$.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use tfhe::core_crypto::commons::math::decomposition::SignedDecomposerNonNative;
+    /// use tfhe::core_crypto::commons::parameters::{
+    ///     CiphertextModulus, DecompositionBaseLog, DecompositionLevelCount,
+    /// };
+    /// let decomposer = SignedDecomposerNonNative::new(
+    ///     DecompositionBaseLog(4),
+    ///     DecompositionLevelCount(3),
+    ///     CiphertextModulus::try_new(1 << 32).unwrap(),
+    /// );
+    /// let output = decomposer.decompose(2u64.pow(19)).next().unwrap();
+    /// assert_eq!(
+    ///     output.to_recomposition_summand(DecompositionLevelCount(3)),
+    ///     1048576
+    /// );
+    /// ```
+    pub fn to_recomposition_summand(&self, level_count: DecompositionLevelCount) -> T {
+        // Marc notes
+        // let ciphertext_mod = self.ciphertext_modulus.get();
+        // let log_2_ceil = u128::BITS - 1 - ciphertext_mod.leading_zeros();
+        // let value_u128: u128 = self.value.cast_into();
+        // let summand = value_u128 << (log_2_ceil as usize - self.base_log * self.level);
+        // T::cast_from(summand)
+
+        //////////////////////////////////////////////////////////////////////
+
+        // * B^(l - j) * round(q / B^l)
+        let base_to_the_level_count = 1 << (self.base_log * level_count.0);
+        let unit_interval =
+            divide_round_to_u128(self.ciphertext_modulus.get(), base_to_the_level_count);
+        // let unit_interval = self.ciphertext_modulus.get() / base_to_the_level_count;
+
+        let value_u128: u128 = self.value.cast_into();
+        let summand =
+            value_u128 * (1 << (self.base_log * (level_count.0 - self.level))) * unit_interval;
+        T::cast_from(summand)
+
+        //////////////////////////////////////////////////////////////////////
+
+        // * round(q / B^j)
+        // let base_to_the_level = 1 << (self.base_log * self.level);
+        // let unit_interval = divide_round(self.ciphertext_modulus.get(), base_to_the_level);
+        // // let unit_interval = self.ciphertext_modulus.get() / base_to_the_level_count;
+
+        // let value_u128: u128 = self.value.cast_into();
+        // let summand = value_u128 * unit_interval;
+        // T::cast_from(summand)
+
+        //////////////////////////////////////////////////////////////////////
+
+        // Floored approach
+        // * floor(q / B^j)
+        // let base_to_the_level = 1 << (self.base_log * self.level);
+        // // let digit_radix = self.ciphertext_modulus.get() / base_to_the_level;
+
+        // let value_u128: u128 = self.value.cast_into();
+        // let summand = value_u128 * self.ciphertext_modulus.get();
+        // let summand = summand / base_to_the_level;
+        // T::cast_from(summand)
+
+        //////////////////////////////////////////////////////////////////////
+
+        // if self.ciphertext_modulus.is_odd() {
+        //     let base_level_log = self.base_log * self.level;
+        //     let ciphertext_modulus = self.ciphertext_modulus.get();
+        //     let v = odd_modular_inverse_pow_2(ciphertext_modulus, base_level_log);
+        //     let u = v
+        //         .wrapping_mul(ciphertext_modulus)
+        //         .wrapping_add(1u128)
+        //         .wrapping_div(1u128 << base_level_log);
+        //     let value_u128: u128 = self.value.cast_into();
+        //     T::cast_from(value_u128.wrapping_mul(u))
+        // } else {
+        //     let base_to_the_level = 1 << (self.base_log * self.level);
+        //     // let digit_radix = self.ciphertext_modulus.get() / base_to_the_level;
+
+        //     let value_u128: u128 = self.value.cast_into();
+        //     let summand = value_u128 * self.ciphertext_modulus.get();
+        //     let summand = summand / base_to_the_level;
+        //     T::cast_from(summand)
+        // }
+    }
+
+    /// Return the value of the term.
+    ///
+    /// If our member represents one $\tilde{\theta}\_i$, this returns its actual value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use tfhe::core_crypto::commons::math::decomposition::SignedDecomposerNonNative;
+    /// use tfhe::core_crypto::commons::parameters::{
+    ///     CiphertextModulus, DecompositionBaseLog, DecompositionLevelCount,
+    /// };
+    /// let decomposer = SignedDecomposerNonNative::new(
+    ///     DecompositionBaseLog(4),
+    ///     DecompositionLevelCount(3),
+    ///     CiphertextModulus::try_new(1 << 32).unwrap(),
+    /// );
+    /// let output = decomposer.decompose(2u64.pow(19)).next().unwrap();
+    /// assert_eq!(output.value(), 1);
+    /// ```
+    pub fn value(&self) -> T {
+        self.value
+    }
+
+    /// Return the level of the term.
+    ///
+    /// If our member represents one $\tilde{\theta}\_i$, this returns the value of $i$.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use tfhe::core_crypto::commons::math::decomposition::{
+    ///     DecompositionLevel, SignedDecomposerNonNative,
+    /// };
+    /// use tfhe::core_crypto::commons::parameters::{
+    ///     CiphertextModulus, DecompositionBaseLog, DecompositionLevelCount,
+    /// };
+    /// let decomposer = SignedDecomposerNonNative::new(
+    ///     DecompositionBaseLog(4),
+    ///     DecompositionLevelCount(3),
+    ///     CiphertextModulus::try_new(1 << 32).unwrap(),
+    /// );
+    /// let output = decomposer.decompose(2u64.pow(19)).next().unwrap();
     /// assert_eq!(output.level(), DecompositionLevel(3));
     /// ```
     pub fn level(&self) -> DecompositionLevel {
