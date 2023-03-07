@@ -5,12 +5,12 @@ use std::os::raw::c_int;
 
 use crate::shortint;
 
-use super::ShortintCiphertext;
+use super::{ShortintCiphertext, parameters::ShortintParameters};
 pub struct ShortintClientKey(pub(in crate::c_api) shortint::client_key::ClientKey);
 
 #[no_mangle]
 pub unsafe extern "C" fn shortint_gen_client_key(
-    shortint_parameters: *const super::parameters::ShortintParameters,
+    shortint_parameters: *const ShortintParameters,
     result_client_key: *mut *mut ShortintClientKey,
 ) -> c_int {
     catch_panic(|| {
@@ -163,5 +163,19 @@ pub unsafe extern "C" fn shortint_deserialize_client_key(
         let heap_allocated_client_key = Box::new(ShortintClientKey(client_key));
 
         *result = Box::into_raw(heap_allocated_client_key);
+    })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn shortint_client_key_get_message_modulus(
+    client_key: *const ShortintClientKey,
+    result: *mut usize,
+) -> c_int {
+    catch_panic(|| {
+        check_ptr_is_non_null_and_aligned(result).unwrap();
+
+        let client_key = get_ref_checked(client_key).unwrap();
+
+        *result = client_key.0.parameters.message_modulus.0;
     })
 }

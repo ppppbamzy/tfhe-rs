@@ -234,6 +234,26 @@ void test_compressed_public_keygen(void) {
   destroy_shortint_ciphertext(ct);
 }
 
+void test_client_key_get_modulus(void) {
+  ShortintClientKey *cks = NULL;
+  ShortintParameters *params = NULL;
+  size_t message_modulus = 0;
+
+  int get_params_ok = shortint_get_parameters(2, 2, &params);
+  assert(get_params_ok == 0);
+
+  int gen_keys_ok = shortint_gen_client_key(params, &cks);
+  assert(gen_keys_ok == 0);
+
+  int get_msg_mod_ok = shortint_client_key_get_message_modulus(cks, &message_modulus);
+  assert(get_msg_mod_ok == 0);
+  
+  assert(message_modulus == 4);
+
+  destroy_shortint_parameters(params);
+  destroy_shortint_client_key(cks);
+}
+
 int main(void) {
   test_predefined_keygen_w_serde();
   test_custom_keygen();
@@ -242,5 +262,6 @@ int main(void) {
   test_compressed_public_keygen();
   test_server_key_trivial_encrypt();
   test_server_key_bc_trivial_encrypt();
+  test_client_key_get_modulus();
   return EXIT_SUCCESS;
 }
