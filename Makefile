@@ -82,7 +82,7 @@ install_node:
 fmt: install_rs_check_toolchain
 	cargo "$(CARGO_RS_CHECK_TOOLCHAIN)" fmt
 
-.PHONT: check_fmt # Check rust code format
+.PHONY: check_fmt # Check rust code format
 check_fmt: install_rs_check_toolchain
 	cargo "$(CARGO_RS_CHECK_TOOLCHAIN)" fmt --check
 
@@ -144,7 +144,7 @@ clippy_all_targets:
 
 .PHONY: clippy_all # Run all clippy targets
 clippy_all: clippy clippy_boolean clippy_shortint clippy_integer clippy_all_targets clippy_c_api \
-clippy_js_wasm_api clippy_tasks clippy_core
+clippy_js_wasm_api clippy_tasks clippy_core clippy_noise_measurement
 
 .PHONY: clippy_fast # Run main clippy targets
 clippy_fast: clippy clippy_all_targets clippy_c_api clippy_js_wasm_api clippy_tasks clippy_core
@@ -498,6 +498,31 @@ sha256_bool: install_rs_check_toolchain
 	RUSTFLAGS="$(RUSTFLAGS)" cargo $(CARGO_RS_CHECK_TOOLCHAIN) run --profile $(CARGO_PROFILE) \
 	--example sha256_bool \
 	--features=$(TARGET_ARCH_FEATURE),boolean
+
+.PHONY: external_product_noise_measurement # Run scripts to run noise measurement for external_product
+external_product_noise_measurement: setup_venv install_rs_check_toolchain
+	source venv/bin/activate && \
+	cd tfhe-rs-cost-model/src/ && \
+	python3 external_product_correction.py \
+		--rust-toolchain $(CARGO_RS_CHECK_TOOLCHAIN) \
+		--chunks "$$(nproc)" -- \
+		--algorithm ext-prod
+
+.PHONY: clippy_noise_measurement # Run clippy lints on noise measurement tool
+clippy_noise_measurement: install_rs_check_toolchain
+	RUSTFLAGS="$(RUSTFLAGS)" cargo "$(CARGO_RS_CHECK_TOOLCHAIN)" clippy --all-targets \
+		-p tfhe-rs-cost-model -- --no-deps -D warnings
+	RUSTFLAGS="$(RUSTFLAGS)" cargo "$(CARGO_RS_CHECK_TOOLCHAIN)" clippy --all-targets \
+		-p concrete-cpu-noise-model -- --no-deps -D warnings
+	RUSTFLAGS="$(RUSTFLAGS)" cargo "$(CARGO_RS_CHECK_TOOLCHAIN)" clippy --all-targets \
+		-p concrete-security-curves -- --no-deps -D warnings
+
+.PHONY: setup_venv
+setup_venv:
+	python3 -m venv venv
+	source venv/bin/activate && \
+	pip install -U pip wheel setuptools && \
+	pip install -r tfhe-rs-cost-model/src/requirements.txt
 
 .PHONY: pcc # pcc stands for pre commit checks
 pcc: no_tfhe_typo check_fmt doc clippy_all check_compile_tests

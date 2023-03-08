@@ -13,3 +13,7 @@ target/
 # Some of our bench outputs
 /tfhe/benchmarks_parameters
 **/*.csv
+
+# Sampling tool stuff
+venv/
+**/*.algo_sample_acquistion
