@@ -49,3 +49,6 @@ pub use js_on_wasm_api::*;
     feature = "integer"
 ))]
 mod test_user_docs;
+
+pub(crate) mod typed_api;
+pub use typed_api::*;
