@@ -73,6 +73,15 @@ pub struct Accumulator {
     pub degree: Degree,
 }
 
+pub struct BivariateAccumulator {
+    // A bivaraite accumulator is a univariate accumulator
+    // where the message space is split shared to encode
+    // 2 values
+    pub acc: Accumulator,
+    // By how much we shift the lhs in the LUT
+    pub ct_righ_modulus: MessageModulus,
+}
+
 impl ServerKey {
     /// Generate a server key.
     ///
@@ -135,6 +144,21 @@ impl ServerKey {
         })
     }
 
+    pub fn generate_accumulator_bivariate_with_factor<F>(
+        &self,
+        f: F,
+        factor: MessageModulus,
+    ) -> BivariateAccumulator
+    where
+        F: Fn(u64, u64) -> u64,
+    {
+        ShortintEngine::with_thread_local_mut(|engine| {
+            engine
+                .generate_accumulator_bivariate_with_factor(self, f, factor)
+                .unwrap()
+        })
+    }
+
     /// Constructs the accumulator for a given bivariate function as input.
     ///
     /// # Example
@@ -160,7 +184,7 @@ impl ServerKey {
     /// // 3^2 mod 4 = 1
     /// assert_eq!(dec, f(msg, 0));
     /// ```
-    pub fn generate_accumulator_bivariate<F>(&self, f: F) -> Accumulator
+    pub fn generate_accumulator_bivariate<F>(&self, f: F) -> BivariateAccumulator
     where
         F: Fn(u64, u64) -> u64,
     {
@@ -253,7 +277,7 @@ impl ServerKey {
         &self,
         ct_left: &Ciphertext,
         ct_right: &Ciphertext,
-        acc: &Accumulator,
+        acc: &BivariateAccumulator,
     ) -> Ciphertext {
         ShortintEngine::with_thread_local_mut(|engine| {
             engine
@@ -266,7 +290,7 @@ impl ServerKey {
         &self,
         ct_left: &mut Ciphertext,
         ct_right: &Ciphertext,
-        acc: &Accumulator,
+        acc: &BivariateAccumulator,
     ) {
         ShortintEngine::with_thread_local_mut(|engine| {
             engine
@@ -332,7 +356,7 @@ impl ServerKey {
         f: F,
     ) -> Ciphertext
     where
-        F: Fn(u64) -> u64,
+        F: Fn(u64, u64) -> u64,
     {
         ShortintEngine::with_thread_local_mut(|engine| {
             engine
@@ -347,7 +371,7 @@ impl ServerKey {
         ct_right: &Ciphertext,
         f: F,
     ) where
-        F: Fn(u64) -> u64,
+        F: Fn(u64, u64) -> u64,
     {
         ShortintEngine::with_thread_local_mut(|engine| {
             engine
