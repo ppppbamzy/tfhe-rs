@@ -8,8 +8,8 @@ use crate::shortint::keycache::KEY_CACHE;
 use crate::shortint::ServerKey;
 
 use super::client_key::GenericShortIntClientKey;
-use super::types::GenericShortInt;
 use super::parameters::ShortIntegerParameter;
+use super::types::GenericShortInt;
 
 /// The internal key of a short integer type
 ///
@@ -487,12 +487,7 @@ where
         F: Fn(u8, u8) -> u8,
     {
         let modulus = lhs_ct.message_modulus();
-        let wrapped_f = |input: u64| -> u64 {
-            let lhs = ((input / modulus) % modulus) as u8;
-            let rhs = (input % modulus) as u8;
-
-            u64::from(func(lhs, rhs))
-        };
+        let wrapped_f = |lhs: u64, rhs: u64| -> u64 { u64::from(func(lhs as u8, rhs as u8)) };
 
         let ciphertext = self.key.unchecked_functional_bivariate_pbs(
             &lhs_ct.ciphertext.borrow(),
