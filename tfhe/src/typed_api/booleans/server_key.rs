@@ -3,10 +3,9 @@ use super::parameters::BooleanParameterSet;
 use super::types::GenericBool;
 use crate::boolean::server_key::{BinaryBooleanGates, ServerKey};
 
-use serde::{Deserialize, Serialize};
 
-// #[cfg_attr(doc, cfg(feature = "boolean"))]
-#[derive(Clone, Serialize, Deserialize)]
+#[cfg_attr(doc, cfg(feature = "boolean"))]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct GenericBoolServerKey<P>
 where
     P: BooleanParameterSet,

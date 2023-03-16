@@ -12,7 +12,7 @@ use crate::typed_api::shortints::{ShortIntPublicKey};
 use crate::typed_api::booleans::{BooleanPublicKey};
 
 use super::ClientKey;
-
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct PublicKey {
     #[cfg(feature = "boolean")]
     pub(crate) boolean_key: BooleanPublicKey,
