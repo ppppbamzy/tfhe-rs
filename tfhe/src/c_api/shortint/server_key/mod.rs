@@ -139,3 +139,17 @@ pub unsafe extern "C" fn shortint_deserialize_server_key(
         *result = Box::into_raw(heap_allocated_server_key);
     })
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn shortint_server_key_get_message_modulus(
+    server_key: *const ShortintServerKey,
+    result: *mut usize,
+) -> c_int {
+    catch_panic(|| {
+        check_ptr_is_non_null_and_aligned(result).unwrap();
+
+        let server_key = get_ref_checked(server_key).unwrap();
+
+        *result = server_key.0.message_modulus.0;
+    })
+}

@@ -247,11 +247,35 @@ void test_client_key_get_modulus(void) {
 
   int get_msg_mod_ok = shortint_client_key_get_message_modulus(cks, &message_modulus);
   assert(get_msg_mod_ok == 0);
-  
+
   assert(message_modulus == 4);
 
   destroy_shortint_parameters(params);
   destroy_shortint_client_key(cks);
+}
+
+void test_server_key_get_modulus(void) {
+  ShortintClientKey *cks = NULL;
+  ShortintServerKey *sks = NULL;
+  ShortintParameters *params = NULL;
+  size_t message_modulus = 0;
+
+  int get_params_ok = shortint_get_parameters(2, 2, &params);
+  assert(get_params_ok == 0);
+
+  int gen_cks_ok = shortint_gen_client_key(params, &cks);
+  assert(gen_cks_ok == 0);
+
+  int gen_sks_ok = shortint_gen_server_key(cks, &sks);
+  assert(gen_sks_ok == 0);
+
+  int get_msg_mod_ok = shortint_server_key_get_message_modulus(sks, &message_modulus);
+  assert(get_msg_mod_ok == 0);
+
+  assert(message_modulus == 4);
+
+  destroy_shortint_parameters(params);
+  destroy_shortint_server_key(sks);
 }
 
 int main(void) {
@@ -263,5 +287,6 @@ int main(void) {
   test_server_key_trivial_encrypt();
   test_server_key_bc_trivial_encrypt();
   test_client_key_get_modulus();
+  test_server_key_get_modulus();
   return EXIT_SUCCESS;
 }
