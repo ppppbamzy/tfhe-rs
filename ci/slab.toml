@@ -3,10 +3,15 @@ region = "eu-west-3"
 image_id = "ami-04deffe45b5b236fd"
 instance_type = "m6i.32xlarge"
 
+#[profile.bench]
+#region = "eu-west-3"
+#image_id = "ami-04deffe45b5b236fd"
+#instance_type = "m6i.metal"
+
 [profile.bench]
-region = "eu-west-3"
-image_id = "ami-04deffe45b5b236fd"
-instance_type = "m6i.metal"
+region = "us-east-1"
+image_id = "ami-0336bc59bc427eec3"
+instance_type = "c6a.metal"
 
 [command.cpu_test]
 workflow = "aws_tfhe_tests.yml"
