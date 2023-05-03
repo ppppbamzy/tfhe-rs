@@ -85,10 +85,10 @@ where
     F: FnOnce(&ServerKey) -> T,
 {
     // Should use `with_borrow` when its stabilized
-    INTERNAL_KEYS.with(|keys| {
-        let key = &*keys.borrow();
-        func(key)
-    })
+    let key = INTERNAL_KEYS.with(|keys| {
+        keys.borrow().clone()
+    });
+    func(&key)
 }
 
 /// Helper macro to help reduce boiler plate
