@@ -8,6 +8,11 @@ region = "eu-west-3"
 image_id = "ami-04deffe45b5b236fd"
 instance_type = "m6i.metal"
 
+[profile.bench_c6a]
+region = "us-east-1"
+image_id = "ami-0336bc59bc427eec3"
+instance_type = "c6a.metal"
+
 [command.cpu_test]
 workflow = "aws_tfhe_tests.yml"
 profile = "cpu-big"
@@ -37,3 +42,8 @@ check_run_name = "Boolean CPU AWS Benchmarks"
 workflow = "pbs_benchmark.yml"
 profile = "bench"
 check_run_name = "PBS CPU AWS Benchmarks"
+
+[command.pbs_bench_c6a]
+workflow = "pbs_benchmark.yml"
+profile = "bench_c6a"
+check_run_name = "PBS CPU AWS Benchmarks (TESTS)"

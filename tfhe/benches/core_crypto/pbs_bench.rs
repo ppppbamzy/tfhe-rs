@@ -40,11 +40,13 @@ criterion_group!(
 
 criterion_group!(
     name = multi_bit_pbs_group;
-    config = Criterion::default().sample_size(2000);
+    // config = Criterion::default().sample_size(2000);
+    config = Criterion::default().sample_size(200);
     targets = multi_bit_pbs::<u64>, multi_bit_pbs::<u32>
 );
 
-criterion_main!(pbs_group, multi_bit_pbs_group);
+// criterion_main!(pbs_group, multi_bit_pbs_group);
+criterion_main!(multi_bit_pbs_group);
 
 fn benchmark_parameters<Scalar: Numeric>() -> Vec<(String, CryptoParametersRecord)> {
     if Scalar::BITS == 64 {
@@ -392,29 +394,31 @@ fn multi_bit_pbs<Scalar: UnsignedTorus + CastInto<usize> + CastFrom<usize> + Syn
             tfhe::core_crypto::prelude::CiphertextModulus::new_native(),
         );
 
-        let id = format!("{bench_name}_{name}_parallelized");
-        bench_group.bench_function(&id, |b| {
-            b.iter(|| {
-                multi_bit_programmable_bootstrap_lwe_ciphertext(
-                    &lwe_ciphertext_in,
-                    &mut out_pbs_ct,
-                    &accumulator.as_view(),
-                    &multi_bit_bsk,
-                    ThreadCount(num_cpus::get()),
-                );
-                black_box(&mut out_pbs_ct);
-            })
-        });
+        for threads_num in 4..=20 {
+            let id = format!("{bench_name}_{name}_parallelized_{threads_num}_threads");
+            bench_group.bench_function(&id, |b| {
+                b.iter(|| {
+                    multi_bit_programmable_bootstrap_lwe_ciphertext(
+                        &lwe_ciphertext_in,
+                        &mut out_pbs_ct,
+                        &accumulator.as_view(),
+                        &multi_bit_bsk,
+                        ThreadCount(threads_num),
+                    );
+                    black_box(&mut out_pbs_ct);
+                })
+            });
 
-        let bit_size = params.message_modulus.unwrap().ilog2();
-        write_to_json(
-            &id,
-            *params,
-            name,
-            "pbs",
-            &OperatorType::Atomic,
-            bit_size,
-            vec![bit_size],
-        );
+            let bit_size = params.message_modulus.unwrap().ilog2();
+            write_to_json(
+                &id,
+                *params,
+                name,
+                "pbs",
+                &OperatorType::Atomic,
+                bit_size,
+                vec![bit_size],
+            );
+        }
     }
 }

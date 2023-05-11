@@ -12,7 +12,9 @@ jobs:
     if: ${{ (github.event_name == 'push' && github.repository == 'zama-ai/tfhe-rs') ||  github.event_name == 'workflow_dispatch' }}
     strategy:
       matrix:
-        command: [boolean_bench, shortint_bench, integer_bench, pbs_bench]
+        #command: [boolean_bench, shortint_bench, integer_bench, pbs_bench]
+        #command: [pbs_bench, pbs_bench_c6a]
+        command: [pbs_bench, ]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Slab repo
