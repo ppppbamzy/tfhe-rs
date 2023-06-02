@@ -9,6 +9,7 @@ CARGO_RS_BUILD_TOOLCHAIN:=+$(RS_BUILD_TOOLCHAIN)
 CARGO_PROFILE?=release
 MIN_RUST_VERSION:=$(shell grep rust-version tfhe/Cargo.toml | cut -d '=' -f 2 | xargs)
 AVX512_SUPPORT?=OFF
+CODE_COVERAGE?=OFF
 WASM_RUSTFLAGS:=
 BIG_TESTS_INSTANCE?=FALSE
 GEN_KEY_CACHE_MULTI_BIT_ONLY?=FALSE
@@ -16,7 +17,11 @@ PARSE_INTEGER_BENCH_CSV_FILE?=tfhe_rs_integer_benches.csv
 FAST_TESTS?=FALSE
 # This is done to avoid forgetting it, we still precise the RUSTFLAGS in the commands to be able to
 # copy paste the command in the terminal and change them if required without forgetting the flags
-export RUSTFLAGS?=-C target-cpu=native
+ifeq ($(CODE_COVERAGE),ON)
+		export RUSTFLAGS?=-C target-cpu=native -C instrument-coverage
+else
+		export RUSTFLAGS?=-C target-cpu=native
+endif
 
 ifeq ($(AVX512_SUPPORT),ON)
 		AVX512_FEATURE=nightly-avx512
@@ -77,6 +82,12 @@ install_node:
 	source ~/.bashrc
 	$(SHELL) -i -c 'nvm install node' || \
 	( echo "Unable to install node, unknown error." && exit 1 )
+
+.PHONY: install_grcov # Install grcov to aggregate code coverage results
+install_grcov: install_rs_build_toolchain
+	@grcov --version > /dev/null 2>&1 || \
+	cargo $(CARGO_RS_BUILD_TOOLCHAIN) install grcov || \
+	( echo "Unable to install cargo grcov, unknown error." && exit 1 )
 
 .PHONY: fmt # Format rust code
 fmt: install_rs_check_toolchain
@@ -243,6 +254,14 @@ test_boolean: install_rs_build_toolchain
 	RUSTFLAGS="$(RUSTFLAGS)" cargo $(CARGO_RS_BUILD_TOOLCHAIN) test --profile $(CARGO_PROFILE) \
 		--features=$(TARGET_ARCH_FEATURE),boolean -p tfhe -- boolean::
 
+.PHONY: test_boolean_cov # Run the tests of the boolean module with code coverage
+test_boolean_cov: install_grcov
+	RUSTFLAGS="$(RUSTFLAGS)" cargo +nightly test --lib --profile $(CARGO_PROFILE) \
+		--features=$(TARGET_ARCH_FEATURE),boolean -p tfhe -- --test-threads=1 boolean::
+	RUSTFLAGS="$(RUSTFLAGS)" RUSTDOCFLAGS="-C instrument-coverage -Z unstable-options --persist-doctests target/debug/doctestbins" cargo +nightly test --doc --profile $(CARGO_PROFILE) \
+		--features=$(TARGET_ARCH_FEATURE),boolean -p tfhe -- boolean::
+	grcov . --binary-path ./target/release/deps/ -s ./tfhe/ --keep-only 'src/boolean/*' -t html --ignore "src/boolean/parameters/*" --branch -o target/coverage/latest_boolean
+
 .PHONY: test_c_api # Run the tests for the C API
 test_c_api: install_rs_check_toolchain 
 	RUSTFLAGS="$(RUSTFLAGS)" cargo $(CARGO_RS_CHECK_TOOLCHAIN) test --profile $(CARGO_PROFILE) \
@@ -269,6 +288,14 @@ test_shortint_multi_bit_ci: install_rs_build_toolchain install_cargo_nextest
 test_shortint: install_rs_build_toolchain
 	RUSTFLAGS="$(RUSTFLAGS)" cargo $(CARGO_RS_BUILD_TOOLCHAIN) test --profile $(CARGO_PROFILE) \
 		--features=$(TARGET_ARCH_FEATURE),shortint,internal-keycache -p tfhe -- shortint::
+
+.PHONY: test_shortint_cov # Run the tests of the boolean module with code coverage
+test_shortint_cov: install_grcov
+	RUSTFLAGS="$(RUSTFLAGS)" cargo +nightly test --lib --profile $(CARGO_PROFILE) \
+		--features=$(TARGET_ARCH_FEATURE),shortint,internal-keycache -p tfhe -- --test-threads=1 shortint::server_key
+	RUSTFLAGS="$(RUSTFLAGS)" RUSTDOCFLAGS="-C instrument-coverage -Z unstable-options --persist-doctests target/debug/doctestbins" cargo +nightly test --doc --profile $(CARGO_PROFILE) \
+		--features=$(TARGET_ARCH_FEATURE),shortint,internal-keycache -p tfhe -- shortint::server_key
+	grcov . --binary-path ./target/release/deps/ -s ./tfhe/ --keep-only 'src/shortint/*' -t html --branch -o target/coverage/latest_shortint
 
 .PHONY: test_integer_ci # Run the tests for integer ci
 test_integer_ci: install_rs_build_toolchain install_cargo_nextest
