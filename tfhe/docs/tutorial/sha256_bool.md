@@ -1,5 +1,5 @@
-# Tutorial
-
+# Tutorial 
+ 
 ## Intro
 
 In this tutorial we will go through the steps to turn a regular sha256 implementation into its homomorphic version. We explain the basics of the sha256 function first, and then how to implement it homomorphically with performance considerations.
