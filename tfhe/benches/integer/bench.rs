@@ -2,7 +2,7 @@
 
 #[path = "../utilities.rs"]
 mod utilities;
-use crate::utilities::{write_to_json, OperatorType};
+// use crate::utilities::{write_to_json, OperatorType};
 
 use criterion::{criterion_group, criterion_main, Criterion};
 use itertools::iproduct;
@@ -15,39 +15,45 @@ use tfhe::shortint::keycache::NamedParam;
 #[allow(unused_imports)]
 use tfhe::shortint::parameters::{
     PARAM_MESSAGE_1_CARRY_1, PARAM_MESSAGE_2_CARRY_2, PARAM_MESSAGE_3_CARRY_3,
-    PARAM_MESSAGE_4_CARRY_4,
+    PARAM_MESSAGE_4_CARRY_4, PARAM_MULTI_BIT_MESSAGE_2_CARRY_2_GROUP_2,
+    PARAM_MULTI_BIT_MESSAGE_2_CARRY_2_GROUP_3,
 };
 
 /// An iterator that yields a succession of combinations
 /// of parameters and a num_block to achieve a certain bit_size ciphertext
 /// in radix decomposition
 struct ParamsAndNumBlocksIter {
-    params_and_bit_sizes:
-        itertools::Product<IntoIter<tfhe::shortint::ClassicPBSParameters, 1>, IntoIter<usize, 7>>,
+    params_and_bit_sizes: itertools::Product<
+        <Vec<tfhe::shortint::PBSParameters> as IntoIterator>::IntoIter,
+        IntoIter<usize, 3>,
+    >,
 }
 
 impl Default for ParamsAndNumBlocksIter {
     fn default() -> Self {
+        use tfhe::shortint::PBSParameters;
         // FIXME One set of parameter is tested since we want to benchmark only quickest operations.
-        const PARAMS: [tfhe::shortint::ClassicPBSParameters; 1] = [
-            PARAM_MESSAGE_2_CARRY_2,
+        let params = vec![
+            PBSParameters::PBS(PARAM_MESSAGE_2_CARRY_2),
             // PARAM_MESSAGE_3_CARRY_3,
             // PARAM_MESSAGE_4_CARRY_4,
+            PBSParameters::MultiBitPBS(PARAM_MULTI_BIT_MESSAGE_2_CARRY_2_GROUP_2),
+            PBSParameters::MultiBitPBS(PARAM_MULTI_BIT_MESSAGE_2_CARRY_2_GROUP_3),
         ];
-        const BIT_SIZES: [usize; 7] = [8, 16, 32, 40, 64, 128, 256];
-        let params_and_bit_sizes = iproduct!(PARAMS, BIT_SIZES);
+        const BIT_SIZES: [usize; 3] = [8, 32, 256]; // [8, 16, 32, 40, 64, 128, 256];
+        let params_and_bit_sizes = iproduct!(params, BIT_SIZES);
         Self {
             params_and_bit_sizes,
         }
     }
 }
 impl Iterator for ParamsAndNumBlocksIter {
-    type Item = (tfhe::shortint::ClassicPBSParameters, usize, usize);
+    type Item = (tfhe::shortint::PBSParameters, usize, usize);
 
     fn next(&mut self) -> Option<Self::Item> {
         let (param, bit_size) = self.params_and_bit_sizes.next()?;
         let num_block =
-            (bit_size as f64 / (param.message_modulus.0 as f64).log(2.0)).ceil() as usize;
+            (bit_size as f64 / (param.message_modulus().0 as f64).log(2.0)).ceil() as usize;
 
         Some((param, num_block, bit_size))
     }
@@ -58,7 +64,7 @@ impl Iterator for ParamsAndNumBlocksIter {
 fn bench_server_key_binary_function_dirty_inputs<F>(
     c: &mut Criterion,
     bench_name: &str,
-    display_name: &str,
+    _display_name: &str,
     binary_op: F,
 ) where
     F: Fn(&ServerKey, &mut RadixCiphertextBig, &mut RadixCiphertextBig),
@@ -88,7 +94,7 @@ fn bench_server_key_binary_function_dirty_inputs<F>(
                 let mut ct_1 = cks.encrypt_radix(clear_1, num_block);
 
                 // Raise the degree, so as to ensure worst case path in operations
-                let mut carry_mod = param.carry_modulus.0;
+                let mut carry_mod = param.carry_modulus().0;
                 while carry_mod > 0 {
                     // Raise the degree, so as to ensure worst case path in operations
                     let clearlow = rng.gen::<u128>();
@@ -113,15 +119,15 @@ fn bench_server_key_binary_function_dirty_inputs<F>(
             )
         });
 
-        write_to_json(
-            &bench_id,
-            param,
-            param.name(),
-            display_name,
-            &OperatorType::Atomic,
-            bit_size as u32,
-            vec![param.message_modulus.0.ilog2(); num_block],
-        );
+        // write_to_json(
+        //     &bench_id,
+        //     param,
+        //     param.name(),
+        //     _display_name,
+        //     &OperatorType::Atomic,
+        //     bit_size as u32,
+        //     vec![param.message_modulus().0.ilog2(); num_block],
+        // );
     }
 
     bench_group.finish()
@@ -132,7 +138,7 @@ fn bench_server_key_binary_function_dirty_inputs<F>(
 fn bench_server_key_binary_function_clean_inputs<F>(
     c: &mut Criterion,
     bench_name: &str,
-    display_name: &str,
+    _display_name: &str,
     binary_op: F,
 ) where
     F: Fn(&ServerKey, &mut RadixCiphertextBig, &mut RadixCiphertextBig),
@@ -173,15 +179,15 @@ fn bench_server_key_binary_function_clean_inputs<F>(
             )
         });
 
-        write_to_json(
-            &bench_id,
-            param,
-            param.name(),
-            display_name,
-            &OperatorType::Atomic,
-            bit_size as u32,
-            vec![param.message_modulus.0.ilog2(); num_block],
-        );
+        // write_to_json(
+        //     &bench_id,
+        //     param,
+        //     param.name(),
+        //     _display_name,
+        //     &OperatorType::Atomic,
+        //     bit_size as u32,
+        //     vec![param.message_modulus().0.ilog2(); num_block],
+        // );
     }
 
     bench_group.finish()
@@ -192,7 +198,7 @@ fn bench_server_key_binary_function_clean_inputs<F>(
 fn bench_server_key_unary_function_dirty_inputs<F>(
     c: &mut Criterion,
     bench_name: &str,
-    display_name: &str,
+    _display_name: &str,
     unary_fn: F,
 ) where
     F: Fn(&ServerKey, &mut RadixCiphertextBig),
@@ -220,7 +226,7 @@ fn bench_server_key_unary_function_dirty_inputs<F>(
                 let mut ct_0 = cks.encrypt_radix(clear_0, num_block);
 
                 // Raise the degree, so as to ensure worst case path in operations
-                let mut carry_mod = param.carry_modulus.0;
+                let mut carry_mod = param.carry_modulus().0;
                 while carry_mod > 0 {
                     // Raise the degree, so as to ensure worst case path in operations
                     let clearlow = rng.gen::<u128>();
@@ -244,15 +250,15 @@ fn bench_server_key_unary_function_dirty_inputs<F>(
             )
         });
 
-        write_to_json(
-            &bench_id,
-            param,
-            param.name(),
-            display_name,
-            &OperatorType::Atomic,
-            bit_size as u32,
-            vec![param.message_modulus.0.ilog2(); num_block],
-        );
+        // write_to_json(
+        //     &bench_id,
+        //     param,
+        //     param.name(),
+        //     _display_name,
+        //     &OperatorType::Atomic,
+        //     bit_size as u32,
+        //     vec![param.message_modulus().0.ilog2(); num_block],
+        // );
     }
 
     bench_group.finish()
@@ -263,7 +269,7 @@ fn bench_server_key_unary_function_dirty_inputs<F>(
 fn bench_server_key_unary_function_clean_inputs<F>(
     c: &mut Criterion,
     bench_name: &str,
-    display_name: &str,
+    _display_name: &str,
     unary_fn: F,
 ) where
     F: Fn(&ServerKey, &mut RadixCiphertextBig),
@@ -300,15 +306,15 @@ fn bench_server_key_unary_function_clean_inputs<F>(
             )
         });
 
-        write_to_json(
-            &bench_id,
-            param,
-            param.name(),
-            display_name,
-            &OperatorType::Atomic,
-            bit_size as u32,
-            vec![param.message_modulus.0.ilog2(); num_block],
-        );
+        // write_to_json(
+        //     &bench_id,
+        //     param,
+        //     param.name(),
+        //     _display_name,
+        //     &OperatorType::Atomic,
+        //     bit_size as u32,
+        //     vec![param.message_modulus().0.ilog2(); num_block],
+        // );
     }
 
     bench_group.finish()
@@ -317,7 +323,7 @@ fn bench_server_key_unary_function_clean_inputs<F>(
 fn bench_server_key_binary_scalar_function_dirty_inputs<F>(
     c: &mut Criterion,
     bench_name: &str,
-    display_name: &str,
+    _display_name: &str,
     binary_op: F,
 ) where
     F: Fn(&ServerKey, &mut RadixCiphertextBig, u64),
@@ -343,7 +349,7 @@ fn bench_server_key_binary_scalar_function_dirty_inputs<F>(
                 let mut ct_0 = cks.encrypt_radix(clear_0, num_block);
 
                 // Raise the degree, so as to ensure worst case path in operations
-                let mut carry_mod = param.carry_modulus.0;
+                let mut carry_mod = param.carry_modulus().0;
                 while carry_mod > 0 {
                     // Raise the degree, so as to ensure worst case path in operations
                     let clearlow = rng.gen::<u128>();
@@ -369,15 +375,15 @@ fn bench_server_key_binary_scalar_function_dirty_inputs<F>(
             )
         });
 
-        write_to_json(
-            &bench_id,
-            param,
-            param.name(),
-            display_name,
-            &OperatorType::Atomic,
-            bit_size as u32,
-            vec![param.message_modulus.0.ilog2(); num_block],
-        );
+        // write_to_json(
+        //     &bench_id,
+        //     param,
+        //     param.name(),
+        //     _display_name,
+        //     &OperatorType::Atomic,
+        //     bit_size as u32,
+        //     vec![param.message_modulus().0.ilog2(); num_block],
+        // );
     }
 
     bench_group.finish()
@@ -386,7 +392,7 @@ fn bench_server_key_binary_scalar_function_dirty_inputs<F>(
 fn bench_server_key_binary_scalar_function_clean_inputs<F>(
     c: &mut Criterion,
     bench_name: &str,
-    display_name: &str,
+    _display_name: &str,
     binary_op: F,
 ) where
     F: Fn(&ServerKey, &mut RadixCiphertextBig, u64),
@@ -425,22 +431,22 @@ fn bench_server_key_binary_scalar_function_clean_inputs<F>(
             )
         });
 
-        write_to_json(
-            &bench_id,
-            param,
-            param.name(),
-            display_name,
-            &OperatorType::Atomic,
-            bit_size as u32,
-            vec![param.message_modulus.0.ilog2(); num_block],
-        );
+        // write_to_json(
+        //     &bench_id,
+        //     param,
+        //     param.name(),
+        //     _display_name,
+        //     &OperatorType::Atomic,
+        //     bit_size as u32,
+        //     vec![param.message_modulus().0.ilog2(); num_block],
+        // );
     }
 
     bench_group.finish()
 }
 
 macro_rules! define_server_key_bench_unary_fn (
-    (method_name: $server_key_method:ident, display_name:$name:ident) => {
+    (method_name: $server_key_method:ident, _display_name:$name:ident) => {
         fn $server_key_method(c: &mut Criterion) {
             bench_server_key_unary_function_dirty_inputs(
                 c,
@@ -454,7 +460,7 @@ macro_rules! define_server_key_bench_unary_fn (
 );
 
 macro_rules! define_server_key_bench_unary_default_fn (
-    (method_name: $server_key_method:ident, display_name:$name:ident) => {
+    (method_name: $server_key_method:ident, _display_name:$name:ident) => {
         fn $server_key_method(c: &mut Criterion) {
             bench_server_key_unary_function_clean_inputs(
                 c,
@@ -468,7 +474,7 @@ macro_rules! define_server_key_bench_unary_default_fn (
 );
 
 macro_rules! define_server_key_bench_fn (
-  (method_name: $server_key_method:ident, display_name:$name:ident) => {
+  (method_name: $server_key_method:ident, _display_name:$name:ident) => {
       fn $server_key_method(c: &mut Criterion) {
         bench_server_key_binary_function_dirty_inputs(
               c,
@@ -482,7 +488,7 @@ macro_rules! define_server_key_bench_fn (
 );
 
 macro_rules! define_server_key_bench_default_fn (
-    (method_name: $server_key_method:ident, display_name:$name:ident) => {
+    (method_name: $server_key_method:ident, _display_name:$name:ident) => {
         fn $server_key_method(c: &mut Criterion) {
           bench_server_key_binary_function_clean_inputs(
                 c,
@@ -496,7 +502,7 @@ macro_rules! define_server_key_bench_default_fn (
   );
 
 macro_rules! define_server_key_bench_scalar_fn (
-  (method_name: $server_key_method:ident, display_name:$name:ident) => {
+  (method_name: $server_key_method:ident, _display_name:$name:ident) => {
       fn $server_key_method(c: &mut Criterion) {
           bench_server_key_binary_scalar_function_dirty_inputs(
               c,
@@ -510,7 +516,7 @@ macro_rules! define_server_key_bench_scalar_fn (
 );
 
 macro_rules! define_server_key_bench_scalar_default_fn (
-    (method_name: $server_key_method:ident, display_name:$name:ident) => {
+    (method_name: $server_key_method:ident, _display_name:$name:ident) => {
         fn $server_key_method(c: &mut Criterion) {
             bench_server_key_binary_scalar_function_clean_inputs(
                 c,
@@ -523,168 +529,168 @@ macro_rules! define_server_key_bench_scalar_default_fn (
     }
   );
 
-define_server_key_bench_fn!(method_name: smart_add, display_name: add);
-define_server_key_bench_fn!(method_name: smart_sub, display_name: sub);
-define_server_key_bench_fn!(method_name: smart_mul, display_name: mul);
-define_server_key_bench_fn!(method_name: smart_bitand, display_name: bitand);
-define_server_key_bench_fn!(method_name: smart_bitor, display_name: bitor);
-define_server_key_bench_fn!(method_name: smart_bitxor, display_name: bitxor);
+define_server_key_bench_fn!(method_name: smart_add, _display_name: add);
+define_server_key_bench_fn!(method_name: smart_sub, _display_name: sub);
+define_server_key_bench_fn!(method_name: smart_mul, _display_name: mul);
+define_server_key_bench_fn!(method_name: smart_bitand, _display_name: bitand);
+define_server_key_bench_fn!(method_name: smart_bitor, _display_name: bitor);
+define_server_key_bench_fn!(method_name: smart_bitxor, _display_name: bitxor);
 
-define_server_key_bench_fn!(method_name: smart_add_parallelized, display_name: add);
-define_server_key_bench_fn!(method_name: smart_sub_parallelized, display_name: sub);
-define_server_key_bench_fn!(method_name: smart_mul_parallelized, display_name: mul);
-define_server_key_bench_fn!(method_name: smart_bitand_parallelized, display_name: bitand);
-define_server_key_bench_fn!(method_name: smart_bitxor_parallelized, display_name: bitxor);
-define_server_key_bench_fn!(method_name: smart_bitor_parallelized, display_name: bitor);
+define_server_key_bench_fn!(method_name: smart_add_parallelized, _display_name: add);
+define_server_key_bench_fn!(method_name: smart_sub_parallelized, _display_name: sub);
+define_server_key_bench_fn!(method_name: smart_mul_parallelized, _display_name: mul);
+define_server_key_bench_fn!(method_name: smart_bitand_parallelized, _display_name: bitand);
+define_server_key_bench_fn!(method_name: smart_bitxor_parallelized, _display_name: bitxor);
+define_server_key_bench_fn!(method_name: smart_bitor_parallelized, _display_name: bitor);
 
-define_server_key_bench_default_fn!(method_name: add_parallelized, display_name: add);
-define_server_key_bench_default_fn!(method_name: sub_parallelized, display_name: sub);
-define_server_key_bench_default_fn!(method_name: mul_parallelized, display_name: mul);
-define_server_key_bench_default_fn!(method_name: bitand_parallelized, display_name: bitand);
-define_server_key_bench_default_fn!(method_name: bitxor_parallelized, display_name: bitxor);
-define_server_key_bench_default_fn!(method_name: bitor_parallelized, display_name: bitor);
+define_server_key_bench_default_fn!(method_name: add_parallelized, _display_name: add);
+define_server_key_bench_default_fn!(method_name: sub_parallelized, _display_name: sub);
+define_server_key_bench_default_fn!(method_name: mul_parallelized, _display_name: mul);
+define_server_key_bench_default_fn!(method_name: bitand_parallelized, _display_name: bitand);
+define_server_key_bench_default_fn!(method_name: bitxor_parallelized, _display_name: bitxor);
+define_server_key_bench_default_fn!(method_name: bitor_parallelized, _display_name: bitor);
 
-define_server_key_bench_fn!(method_name: unchecked_add, display_name: add);
-define_server_key_bench_fn!(method_name: unchecked_sub, display_name: sub);
-define_server_key_bench_fn!(method_name: unchecked_mul, display_name: mul);
-define_server_key_bench_fn!(method_name: unchecked_bitand, display_name: bitand);
-define_server_key_bench_fn!(method_name: unchecked_bitor, display_name: bitor);
-define_server_key_bench_fn!(method_name: unchecked_bitxor, display_name: bitxor);
+define_server_key_bench_fn!(method_name: unchecked_add, _display_name: add);
+define_server_key_bench_fn!(method_name: unchecked_sub, _display_name: sub);
+define_server_key_bench_fn!(method_name: unchecked_mul, _display_name: mul);
+define_server_key_bench_fn!(method_name: unchecked_bitand, _display_name: bitand);
+define_server_key_bench_fn!(method_name: unchecked_bitor, _display_name: bitor);
+define_server_key_bench_fn!(method_name: unchecked_bitxor, _display_name: bitxor);
 
-define_server_key_bench_fn!(method_name: unchecked_mul_parallelized, display_name: mul);
+define_server_key_bench_fn!(method_name: unchecked_mul_parallelized, _display_name: mul);
 define_server_key_bench_fn!(
     method_name: unchecked_bitand_parallelized,
-    display_name: bitand
+    _display_name: bitand
 );
 define_server_key_bench_fn!(
     method_name: unchecked_bitor_parallelized,
-    display_name: bitor
+    _display_name: bitor
 );
 define_server_key_bench_fn!(
     method_name: unchecked_bitxor_parallelized,
-    display_name: bitxor
+    _display_name: bitxor
 );
 
-define_server_key_bench_scalar_fn!(method_name: smart_scalar_add, display_name: add);
-define_server_key_bench_scalar_fn!(method_name: smart_scalar_sub, display_name: sub);
-define_server_key_bench_scalar_fn!(method_name: smart_scalar_mul, display_name: mul);
+define_server_key_bench_scalar_fn!(method_name: smart_scalar_add, _display_name: add);
+define_server_key_bench_scalar_fn!(method_name: smart_scalar_sub, _display_name: sub);
+define_server_key_bench_scalar_fn!(method_name: smart_scalar_mul, _display_name: mul);
 
 define_server_key_bench_scalar_fn!(
     method_name: smart_scalar_add_parallelized,
-    display_name: add
+    _display_name: add
 );
 define_server_key_bench_scalar_fn!(
     method_name: smart_scalar_sub_parallelized,
-    display_name: sub
+    _display_name: sub
 );
 define_server_key_bench_scalar_fn!(
     method_name: smart_scalar_mul_parallelized,
-    display_name: mul
+    _display_name: mul
 );
 
-define_server_key_bench_scalar_default_fn!(method_name: scalar_add_parallelized, display_name: add);
-define_server_key_bench_scalar_default_fn!(method_name: scalar_sub_parallelized, display_name: sub);
-define_server_key_bench_scalar_default_fn!(method_name: scalar_mul_parallelized, display_name: mul);
+define_server_key_bench_scalar_default_fn!(method_name: scalar_add_parallelized, _display_name: add);
+define_server_key_bench_scalar_default_fn!(method_name: scalar_sub_parallelized, _display_name: sub);
+define_server_key_bench_scalar_default_fn!(method_name: scalar_mul_parallelized, _display_name: mul);
 define_server_key_bench_scalar_default_fn!(
     method_name: scalar_left_shift_parallelized,
-    display_name: left_shift
+    _display_name: left_shift
 );
 define_server_key_bench_scalar_default_fn!(
     method_name: scalar_right_shift_parallelized,
-    display_name: right_shift
+    _display_name: right_shift
 );
 
-define_server_key_bench_scalar_fn!(method_name: unchecked_scalar_add, display_name: add);
-define_server_key_bench_scalar_fn!(method_name: unchecked_scalar_sub, display_name: sub);
-define_server_key_bench_scalar_fn!(method_name: unchecked_small_scalar_mul, display_name: mul);
+define_server_key_bench_scalar_fn!(method_name: unchecked_scalar_add, _display_name: add);
+define_server_key_bench_scalar_fn!(method_name: unchecked_scalar_sub, _display_name: sub);
+define_server_key_bench_scalar_fn!(method_name: unchecked_small_scalar_mul, _display_name: mul);
 
-define_server_key_bench_unary_fn!(method_name: smart_neg, display_name: negation);
-define_server_key_bench_unary_fn!(method_name: smart_neg_parallelized, display_name: negation);
-define_server_key_bench_unary_default_fn!(method_name: neg_parallelized, display_name: negation);
+define_server_key_bench_unary_fn!(method_name: smart_neg, _display_name: negation);
+define_server_key_bench_unary_fn!(method_name: smart_neg_parallelized, _display_name: negation);
+define_server_key_bench_unary_default_fn!(method_name: neg_parallelized, _display_name: negation);
 
-define_server_key_bench_unary_fn!(method_name: full_propagate, display_name: carry_propagation);
+define_server_key_bench_unary_fn!(method_name: full_propagate, _display_name: carry_propagation);
 define_server_key_bench_unary_fn!(
     method_name: full_propagate_parallelized,
-    display_name: carry_propagation
+    _display_name: carry_propagation
 );
 
-define_server_key_bench_fn!(method_name: unchecked_max, display_name: max);
-define_server_key_bench_fn!(method_name: unchecked_min, display_name: min);
-define_server_key_bench_fn!(method_name: unchecked_eq, display_name: equal);
-define_server_key_bench_fn!(method_name: unchecked_lt, display_name: less_than);
-define_server_key_bench_fn!(method_name: unchecked_le, display_name: less_or_equal);
-define_server_key_bench_fn!(method_name: unchecked_gt, display_name: greater_than);
-define_server_key_bench_fn!(method_name: unchecked_ge, display_name: greater_or_equal);
+define_server_key_bench_fn!(method_name: unchecked_max, _display_name: max);
+define_server_key_bench_fn!(method_name: unchecked_min, _display_name: min);
+define_server_key_bench_fn!(method_name: unchecked_eq, _display_name: equal);
+define_server_key_bench_fn!(method_name: unchecked_lt, _display_name: less_than);
+define_server_key_bench_fn!(method_name: unchecked_le, _display_name: less_or_equal);
+define_server_key_bench_fn!(method_name: unchecked_gt, _display_name: greater_than);
+define_server_key_bench_fn!(method_name: unchecked_ge, _display_name: greater_or_equal);
 
-define_server_key_bench_fn!(method_name: unchecked_max_parallelized, display_name: max);
-define_server_key_bench_fn!(method_name: unchecked_min_parallelized, display_name: min);
-define_server_key_bench_fn!(method_name: unchecked_eq_parallelized, display_name: equal);
+define_server_key_bench_fn!(method_name: unchecked_max_parallelized, _display_name: max);
+define_server_key_bench_fn!(method_name: unchecked_min_parallelized, _display_name: min);
+define_server_key_bench_fn!(method_name: unchecked_eq_parallelized, _display_name: equal);
 define_server_key_bench_fn!(
     method_name: unchecked_lt_parallelized,
-    display_name: less_than
+    _display_name: less_than
 );
 define_server_key_bench_fn!(
     method_name: unchecked_le_parallelized,
-    display_name: less_or_equal
+    _display_name: less_or_equal
 );
 define_server_key_bench_fn!(
     method_name: unchecked_gt_parallelized,
-    display_name: greater_than
+    _display_name: greater_than
 );
 define_server_key_bench_fn!(
     method_name: unchecked_ge_parallelized,
-    display_name: greater_or_equal
+    _display_name: greater_or_equal
 );
 
-define_server_key_bench_fn!(method_name: smart_max, display_name: max);
-define_server_key_bench_fn!(method_name: smart_min, display_name: min);
-define_server_key_bench_fn!(method_name: smart_eq, display_name: equal);
-define_server_key_bench_fn!(method_name: smart_lt, display_name: less_than);
-define_server_key_bench_fn!(method_name: smart_le, display_name: less_or_equal);
-define_server_key_bench_fn!(method_name: smart_gt, display_name: greater_than);
-define_server_key_bench_fn!(method_name: smart_ge, display_name: greater_or_equal);
+define_server_key_bench_fn!(method_name: smart_max, _display_name: max);
+define_server_key_bench_fn!(method_name: smart_min, _display_name: min);
+define_server_key_bench_fn!(method_name: smart_eq, _display_name: equal);
+define_server_key_bench_fn!(method_name: smart_lt, _display_name: less_than);
+define_server_key_bench_fn!(method_name: smart_le, _display_name: less_or_equal);
+define_server_key_bench_fn!(method_name: smart_gt, _display_name: greater_than);
+define_server_key_bench_fn!(method_name: smart_ge, _display_name: greater_or_equal);
 
-define_server_key_bench_fn!(method_name: smart_max_parallelized, display_name: max);
-define_server_key_bench_fn!(method_name: smart_min_parallelized, display_name: min);
-define_server_key_bench_fn!(method_name: smart_eq_parallelized, display_name: equal);
-define_server_key_bench_fn!(method_name: smart_lt_parallelized, display_name: less_than);
+define_server_key_bench_fn!(method_name: smart_max_parallelized, _display_name: max);
+define_server_key_bench_fn!(method_name: smart_min_parallelized, _display_name: min);
+define_server_key_bench_fn!(method_name: smart_eq_parallelized, _display_name: equal);
+define_server_key_bench_fn!(method_name: smart_lt_parallelized, _display_name: less_than);
 define_server_key_bench_fn!(
     method_name: smart_le_parallelized,
-    display_name: less_or_equal
+    _display_name: less_or_equal
 );
 define_server_key_bench_fn!(
     method_name: smart_gt_parallelized,
-    display_name: greater_than
+    _display_name: greater_than
 );
 define_server_key_bench_fn!(
     method_name: smart_ge_parallelized,
-    display_name: greater_or_equal
+    _display_name: greater_or_equal
 );
 
-define_server_key_bench_default_fn!(method_name: max_parallelized, display_name: max);
-define_server_key_bench_default_fn!(method_name: min_parallelized, display_name: min);
-define_server_key_bench_default_fn!(method_name: eq_parallelized, display_name: equal);
-define_server_key_bench_default_fn!(method_name: ne_parallelized, display_name: not_equal);
-define_server_key_bench_default_fn!(method_name: lt_parallelized, display_name: less_than);
-define_server_key_bench_default_fn!(method_name: le_parallelized, display_name: less_or_equal);
-define_server_key_bench_default_fn!(method_name: gt_parallelized, display_name: greater_than);
-define_server_key_bench_default_fn!(method_name: ge_parallelized, display_name: greater_or_equal);
+define_server_key_bench_default_fn!(method_name: max_parallelized, _display_name: max);
+define_server_key_bench_default_fn!(method_name: min_parallelized, _display_name: min);
+define_server_key_bench_default_fn!(method_name: eq_parallelized, _display_name: equal);
+define_server_key_bench_default_fn!(method_name: ne_parallelized, _display_name: not_equal);
+define_server_key_bench_default_fn!(method_name: lt_parallelized, _display_name: less_than);
+define_server_key_bench_default_fn!(method_name: le_parallelized, _display_name: less_or_equal);
+define_server_key_bench_default_fn!(method_name: gt_parallelized, _display_name: greater_than);
+define_server_key_bench_default_fn!(method_name: ge_parallelized, _display_name: greater_or_equal);
 
 define_server_key_bench_default_fn!(
     method_name: left_shift_parallelized,
-    display_name: left_shift
+    _display_name: left_shift
 );
 define_server_key_bench_default_fn!(
     method_name: right_shift_parallelized,
-    display_name: right_shift
+    _display_name: right_shift
 );
 define_server_key_bench_default_fn!(
     method_name: rotate_left_parallelized,
-    display_name: rotate_left
+    _display_name: rotate_left
 );
 define_server_key_bench_default_fn!(
     method_name: rotate_right_parallelized,
-    display_name: rotate_right
+    _display_name: rotate_right
 );
 
 criterion_group!(
@@ -801,30 +807,29 @@ criterion_group!(misc, full_propagate, full_propagate_parallelized);
 // This gather all the operations that a high-level user could use.
 criterion_group!(
     fast_integer_benchmarks,
-    bitand_parallelized,
-    bitor_parallelized,
-    bitxor_parallelized,
-    add_parallelized,
-    sub_parallelized,
-    mul_parallelized,
-    neg_parallelized,
-    min_parallelized,
-    max_parallelized,
-    eq_parallelized,
-    ne_parallelized,
-    lt_parallelized,
-    le_parallelized,
-    gt_parallelized,
-    ge_parallelized,
-    left_shift_parallelized,
-    right_shift_parallelized,
-    rotate_left_parallelized,
-    rotate_right_parallelized,
-    scalar_add_parallelized,
-    scalar_sub_parallelized,
-    scalar_mul_parallelized,
-    scalar_left_shift_parallelized,
-    scalar_right_shift_parallelized,
+    // bitand_parallelized,
+    // bitor_parallelized,
+    // bitxor_parallelized,
+    // add_parallelized,
+    // sub_parallelized,
+    mul_parallelized /* neg_parallelized,
+                      * min_parallelized,
+                      * max_parallelized,
+                      * eq_parallelized,
+                      * ne_parallelized,
+                      * lt_parallelized,
+                      * le_parallelized,
+                      * gt_parallelized,
+                      * ge_parallelized,
+                      * left_shift_parallelized,
+                      * right_shift_parallelized,
+                      * rotate_left_parallelized,
+                      * rotate_right_parallelized,
+                      * scalar_add_parallelized,
+                      * scalar_sub_parallelized,
+                      * scalar_mul_parallelized,
+                      * scalar_left_shift_parallelized,
+                      * scalar_right_shift_parallelized, */
 );
 
 criterion_main!(
