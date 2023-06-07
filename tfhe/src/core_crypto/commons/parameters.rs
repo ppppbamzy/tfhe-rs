@@ -224,3 +224,39 @@ impl LweBskGroupingFactor {
 /// The number of GGSW ciphertexts required per multi_bit BSK element
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Serialize, Deserialize)]
 pub struct GgswPerLweMultiBitBskElement(pub usize);
+
+
+/// The number of scalars in a CRSLWE ciphertext, i.e. the number of scalar in a CRS LWE mask plus the number of scalar in the body.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Serialize, Deserialize)]
+pub struct CRSLweSize(pub usize,pub usize);
+
+impl CRSLweSize {
+    /// Return the associated [`CRSLweDimension`].
+    pub fn to_crs_lwe_dimension(&self) -> CRSLweDimension {
+        CRSLweDimension(self.0 - self.1)
+    }
+    pub fn to_crs_lwe_codimension(&self) -> CRSLweCodimension {
+        CRSLweCodimension(self.1)
+    }
+}
+
+/// The number of scalar in a CRSLWE mask, or the length of a CRSLWE secret key.
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Serialize, Deserialize)]
+pub struct CRSLweDimension(pub usize);
+
+/// The number of scalar in a CRSLWE body.
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Serialize, Deserialize)]
+pub struct CRSLweCodimension(pub usize);
+
+impl CRSLweDimension {
+    /// Return the associated [`CRSLweSize`].
+    pub fn to_crs_lwe_size(&self, co: CRSLweCodimension ) -> CRSLweSize {
+        CRSLweSize(self.0 + co.0,co.0)
+    }
+}
+impl CRSLweCodimension {
+    /// Return the associated [`CRSLweSize`].
+    pub fn to_crs_lwe_size(&self, dim: CRSLweDimension ) -> CRSLweSize {
+        CRSLweSize(self.0 + dim.0,self.0)
+    }
+}
