@@ -31,6 +31,7 @@ pub struct CiphertextModulus<Scalar: UnsignedInteger> {
     _scalar: PhantomData<Scalar>,
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum CiphertextModulusKind {
     Native,
     NonNativePowerOfTwo,
