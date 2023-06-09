@@ -383,6 +383,34 @@ impl<C: Container<Element = c64>> FourierLweMultiBitBootstrapKey<C> {
             })
     }
 
+    /// Return an iterator over the GGSW ciphertexts composing the key grouping them by the grouping
+    /// factor of the [`FourierLweMultiBitBootstrapKey`].
+    pub fn ggsw_group_iter(
+        &self,
+    ) -> impl DoubleEndedIterator<Item = FourierGgswCiphertextList<&'_ [C::Element]>> {
+        let ggsw_group_count = self.grouping_factor.ggsw_per_multi_bit_element().0;
+        self.fourier
+            .data
+            .as_ref()
+            .chunks_exact(
+                fourier_ggsw_ciphertext_size(
+                    self.glwe_size,
+                    self.fourier.polynomial_size.to_fourier_polynomial_size(),
+                    self.decomposition_level_count,
+                ) * ggsw_group_count,
+            )
+            .map(move |slice| {
+                FourierGgswCiphertextList::new(
+                    slice,
+                    ggsw_group_count,
+                    self.glwe_size,
+                    self.fourier.polynomial_size,
+                    self.decomposition_base_log,
+                    self.decomposition_level_count,
+                )
+            })
+    }
+
     pub fn input_lwe_dimension(&self) -> LweDimension {
         self.input_lwe_dimension
     }

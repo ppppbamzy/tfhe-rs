@@ -11,6 +11,7 @@ use crate::core_crypto::fft_impl::fft64::crypto::ggsw::{
     add_external_product_assign, add_external_product_assign_scratch, update_with_fmadd,
 };
 use crate::core_crypto::fft_impl::fft64::math::fft::{Fft, FftView};
+use crate::core_crypto::fft_impl::fft64::math::polynomial::FourierPolynomialOwned;
 use concrete_fft::c64;
 use std::sync::{mpsc, Condvar, Mutex};
 use std::thread;
@@ -23,7 +24,7 @@ pub fn prepare_multi_bit_ggsw_mem_optimized<
     FourierPolyCont,
 >(
     fourier_ggsw_buffer: &mut FourierGgswCiphertext<GgswBufferCont>,
-    ggsw_group: &[FourierGgswCiphertext<GgswGroupCont>],
+    ggsw_group: FourierGgswCiphertextList<GgswGroupCont>,
     lwe_mask_elements: &[Scalar],
     a_monomial: &mut Polynomial<PolyCont>,
     fourier_a_monomial: &mut FourierPolynomial<FourierPolyCont>,
@@ -32,11 +33,11 @@ pub fn prepare_multi_bit_ggsw_mem_optimized<
 ) where
     Scalar: UnsignedTorus + CastInto<usize> + CastFrom<usize>,
     GgswBufferCont: ContainerMut<Element = c64>,
-    GgswGroupCont: Container<Element = c64>,
+    GgswGroupCont: Container<Element = c64> + Split,
     PolyCont: ContainerMut<Element = Scalar>,
     FourierPolyCont: ContainerMut<Element = c64>,
 {
-    let mut ggsw_group_iter = ggsw_group.iter();
+    let mut ggsw_group_iter = ggsw_group.into_ggsw_iter();
 
     // Keygen guarantees the first term is a constant term of the polynomial, no
     // polynomial multiplication required
@@ -360,21 +361,14 @@ pub fn multi_bit_blind_rotate_assign<Scalar, InputCont, OutputCont, KeyCont>(
 
     let (lwe_mask, lwe_body) = input.get_mask_and_body();
 
-    // No way to chunk the result of ggsw_iter at the moment
-    let ggsw_vec: Vec<_> = multi_bit_bsk.ggsw_iter().collect();
-    let mut work_queue = Vec::with_capacity(multi_bit_bsk.multi_bit_input_lwe_dimension().0);
-
     let grouping_factor = multi_bit_bsk.grouping_factor();
-    let ggsw_per_multi_bit_element = grouping_factor.ggsw_per_multi_bit_element();
-
-    for (lwe_mask_elements, ggsw_group) in lwe_mask
+    let work_queue: Vec<_> = lwe_mask
         .as_ref()
         .chunks_exact(grouping_factor.0)
-        .zip(ggsw_vec.chunks_exact(ggsw_per_multi_bit_element.0))
-    {
-        work_queue.push((lwe_mask_elements, ggsw_group));
-    }
+        .zip(multi_bit_bsk.ggsw_group_iter())
+        .collect();
 
+    let work_queue_len = work_queue.len();
     assert!(work_queue.len() == lwe_mask.lwe_dimension().0 / grouping_factor.0);
 
     let work_queue = Mutex::new(work_queue);
@@ -401,41 +395,63 @@ pub fn multi_bit_blind_rotate_assign<Scalar, InputCont, OutputCont, KeyCont>(
             )
         });
 
-    let fourier_multi_bit_ggsw_buffers = (0..thread_buffers)
-        .map(|_| {
-            (
-                Mutex::new(false),
-                Condvar::new(),
-                Mutex::new(FourierGgswCiphertext::new(
-                    multi_bit_bsk.glwe_size(),
-                    multi_bit_bsk.polynomial_size(),
-                    multi_bit_bsk.decomposition_base_log(),
-                    multi_bit_bsk.decomposition_level_count(),
-                )),
-            )
-        })
-        .collect::<Vec<_>>();
-
-    let (tx, rx) = mpsc::channel::<usize>();
+    let fourier_multi_bit_ggsw_buffers = [
+        (
+            Mutex::new(false),
+            Condvar::new(),
+            Mutex::new(FourierGgswCiphertext::new(
+                multi_bit_bsk.glwe_size(),
+                multi_bit_bsk.polynomial_size(),
+                multi_bit_bsk.decomposition_base_log(),
+                multi_bit_bsk.decomposition_level_count(),
+            )),
+        ),
+        (
+            Mutex::new(false),
+            Condvar::new(),
+            Mutex::new(FourierGgswCiphertext::new(
+                multi_bit_bsk.glwe_size(),
+                multi_bit_bsk.polynomial_size(),
+                multi_bit_bsk.decomposition_base_log(),
+                multi_bit_bsk.decomposition_level_count(),
+            )),
+        ),
+    ];
 
     let fft = Fft::new(multi_bit_bsk.polynomial_size());
     let fft = fft.as_view();
+
     thread::scope(|s| {
-        let produce_multi_bit_fourier_ggsw = |thread_id: usize, tx: mpsc::Sender<usize>| {
-            let mut buffers = ComputationBuffers::new();
+        let producer_closure = || {
+            struct MultiBitBuffers<Scalar: UnsignedInteger> {
+                computation_buffers: ComputationBuffers,
+                monomial: PolynomialOwned<Scalar>,
+                fourier_monomial: FourierPolynomialOwned,
+            }
 
-            buffers.resize(fft.forward_scratch().unwrap().unaligned_bytes_required());
-
-            let mut a_monomial = Polynomial::new(Scalar::ZERO, multi_bit_bsk.polynomial_size());
-            let mut fourier_a_monomial = FourierPolynomial::new(multi_bit_bsk.polynomial_size());
+            let ggsw_per_group = multi_bit_bsk
+                .grouping_factor()
+                .ggsw_per_multi_bit_element()
+                .0
+                - 1;
+            let mut buffers: Vec<_> = (0..ggsw_per_group)
+                .map(|_| MultiBitBuffers {
+                    computation_buffers: ComputationBuffers::with_capacity(
+                        fft.forward_scratch().unwrap().unaligned_bytes_required(),
+                    ),
+                    monomial: Polynomial::new(Scalar::ZERO, multi_bit_bsk.polynomial_size()),
+                    fourier_monomial: FourierPolynomial::new(multi_bit_bsk.polynomial_size()),
+                })
+                .collect();
 
             let work_queue = &work_queue;
 
-            let dest_idx = thread_id;
-            let (ready_for_consumer_lock, condvar, fourier_ggsw_buffer) =
-                &fourier_multi_bit_ggsw_buffers[dest_idx];
+            for task_id in 0..work_queue_len {
+                let dest_idx = task_id % fourier_multi_bit_ggsw_buffers.len();
 
-            loop {
+                let (ready_for_consumer_lock, condvar, fourier_ggsw_buffer) =
+                    &fourier_multi_bit_ggsw_buffers[dest_idx];
+
                 let maybe_work = {
                     let mut queue_lock = work_queue.lock().unwrap();
                     queue_lock.pop()
@@ -466,19 +482,13 @@ pub fn multi_bit_blind_rotate_assign<Scalar, InputCont, OutputCont, KeyCont>(
                 drop(fourier_ggsw_buffer);
 
                 *ready_for_consumer = true;
-                tx.send(dest_idx).unwrap();
 
                 // Wake threads waiting on the condvar
-                condvar.notify_all();
+                condvar.notify_one();
             }
         };
 
-        let threads: Vec<_> = (0..thread_count.0)
-            .map(|id| {
-                let tx = tx.clone();
-                s.spawn(move || produce_multi_bit_fourier_ggsw(id, tx))
-            })
-            .collect();
+        let producer_thread = s.spawn(|| producer_closure());
 
         // We initialize ct0 for the successive external products
         let ct0 = accumulator;
@@ -502,15 +512,16 @@ pub fn multi_bit_blind_rotate_assign<Scalar, InputCont, OutputCont, KeyCont>(
             .unaligned_bytes_required(),
         );
 
-        let mut src_idx = 1usize;
+        let mut ct_src_idx = 1usize;
 
-        for _ in 0..multi_bit_bsk.multi_bit_input_lwe_dimension().0 {
-            src_idx ^= 1;
-            let idx = rx.recv().unwrap();
+        for task_id in 0..work_queue_len {
+            ct_src_idx ^= 1;
+            let ggsw_src_idx = task_id % fourier_multi_bit_ggsw_buffers.len();
+
             let (ready_lock, condvar, multi_bit_fourier_ggsw) =
-                &fourier_multi_bit_ggsw_buffers[idx];
+                &fourier_multi_bit_ggsw_buffers[ggsw_src_idx];
 
-            let (src_ct, mut dst_ct) = if src_idx == 0 {
+            let (src_ct, mut dst_ct) = if ct_src_idx == 0 {
                 (ct0.as_view(), ct1.as_mut_view())
             } else {
                 (ct1.as_view(), ct0.as_mut_view())
@@ -537,16 +548,17 @@ pub fn multi_bit_blind_rotate_assign<Scalar, InputCont, OutputCont, KeyCont>(
             condvar.notify_one();
         }
 
-        if src_idx == 0 {
+        if ct_src_idx == 0 {
             ct0.as_mut().copy_from_slice(ct1.as_ref());
         }
 
         let ciphertext_modulus = ct0.ciphertext_modulus();
         if !ciphertext_modulus.is_native_modulus() {
-            // When we convert back from the fourier domain, integer values will contain up to 53
-            // MSBs with information. In our representation of power of 2 moduli < native modulus we
-            // fill the MSBs and leave the LSBs empty, this usage of the signed decomposer allows to
-            // round while keeping the data in the MSBs
+            // When we convert back from the fourier domain, integer values will contain up to
+            // 53 MSBs with information. In our representation of power of 2
+            // moduli < native modulus we fill the MSBs and leave the LSBs
+            // empty, this usage of the signed decomposer allows to round while
+            // keeping the data in the MSBs
             let signed_decomposer = SignedDecomposer::new(
                 DecompositionBaseLog(ciphertext_modulus.get_custom_modulus().ilog2() as usize),
                 DecompositionLevelCount(1),
@@ -555,8 +567,6 @@ pub fn multi_bit_blind_rotate_assign<Scalar, InputCont, OutputCont, KeyCont>(
                 .iter_mut()
                 .for_each(|x| *x = signed_decomposer.closest_representable(*x));
         }
-
-        threads.into_iter().for_each(|t| t.join().unwrap());
     });
 }
 

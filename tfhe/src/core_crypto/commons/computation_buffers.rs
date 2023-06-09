@@ -10,9 +10,16 @@ pub struct ComputationBuffers {
 }
 
 impl ComputationBuffers {
-    /// Create a new emtpy [`ComputationBuffers`] instance.
+    /// Create a new empty [`ComputationBuffers`] instance.
     pub fn new() -> Self {
         ComputationBuffers { memory: Vec::new() }
+    }
+
+    /// Create a new [`ComputationBuffers`] instance with a given `capacity`.
+    pub fn with_capacity(capacity: usize) -> Self {
+        ComputationBuffers {
+            memory: Vec::with_capacity(capacity),
+        }
     }
 
     /// Resize the underlying memory buffer, reallocating memory when capacity exceeds the current
