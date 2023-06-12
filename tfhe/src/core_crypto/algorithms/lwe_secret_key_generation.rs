@@ -1,5 +1,5 @@
 //! Module containing primitives pertaining to the generation of
-//! [`LWE secret keys`](`LweSecretKey`).
+//! [`LWE secret keys`](`LweSecretKey`). and [`CRSLWE secret keys`](`CRSLweSecretKey`) 
 
 use crate::core_crypto::commons::generators::SecretRandomGenerator;
 use crate::core_crypto::commons::math::random::{RandomGenerable, UniformBinary};
@@ -7,6 +7,7 @@ use crate::core_crypto::commons::numeric::Numeric;
 use crate::core_crypto::commons::parameters::*;
 use crate::core_crypto::commons::traits::*;
 use crate::core_crypto::entities::*;
+use crate::core_crypto::prelude::crs_lwe_secret_key::*;
 
 /// Allocate a new [`LWE secret key`](`LweSecretKey`) and fill it with uniformly random binary
 /// coefficients.
@@ -64,3 +65,69 @@ pub fn generate_binary_lwe_secret_key<Scalar, InCont, Gen>(
 {
     generator.fill_slice_with_random_uniform_binary(lwe_secret_key.as_mut())
 }
+
+/// Allocate a new [`CRSLWE secret key`](`CRSLweSecretKey`) and fill it with uniformly random binary
+/// coefficients.
+///
+/// See [`encrypt_lwe_ciphertext`](`super::lwe_encryption::encrypt_lwe_ciphertext`) for usage.
+pub fn allocate_and_generate_new_binary_crs_lwe_secret_key<Scalar, Gen>(
+    crs_lwe_dimension: CRSLweDimension,
+    crs_lwe_codimension: CRSLweCodimension,
+    generator: &mut SecretRandomGenerator<Gen>,
+) -> CRSLweSecretKeyOwned<Scalar>
+where
+    Scalar: RandomGenerable<UniformBinary> + Numeric,
+    Gen: ByteRandomGenerator,
+{
+    let mut crs_lwe_secret_key = CRSLweSecretKeyOwned::new_empty_key(Scalar::ZERO, crs_lwe_dimension, crs_lwe_codimension);
+
+    generate_binary_crs_lwe_secret_key(&mut crs_lwe_secret_key, generator);
+
+    crs_lwe_secret_key
+}
+
+/// Fill an [`LWE secret key`](`LweSecretKey`) with uniformly random binary coefficients.
+///
+/// # Example
+///
+/// ```
+/// use tfhe::core_crypto::prelude::*;
+///
+/// // DISCLAIMER: these toy example parameters are not guaranteed to be secure or yield correct
+/// // computations
+/// // Define parameters for LweCiphertext creation
+/// let crs_lwe_dimension = CRSLweDimension(742);
+/// let crs_lwe_codimension = CRSLweCodimension(12);
+/// // Create the PRNG
+/// let mut seeder = new_seeder();
+/// let seeder = seeder.as_mut();
+/// let mut secret_generator =
+///     SecretRandomGenerator::<ActivatedRandomGenerator>::new(seeder.seed());
+///
+/// let mut crs_lwe_secret_key = CRSLweSecretKey::new_empty_key(0u64, crs_lwe_dimension, crs_lwe_codimension );
+///
+/// generate_binary_crs_lwe_secret_key(&mut crs_lwe_secret_key, &mut secret_generator);
+///
+/// // Check all coefficients are not zero as we just generated a new key
+/// // Note probability of this assert failing is (1/2)^lwe_dimension or ~4.3 * 10^-224 for an LWE
+/// // dimension of 742.
+/// assert!(crs_lwe_secret_key.as_ref().iter().all(|&elt| elt == 0) == false);
+/// ```
+pub fn generate_binary_crs_lwe_secret_key<Scalar, InCont, Gen>(
+    crs_lwe_secret_key: &mut CRSLweSecretKey<InCont>,
+    generator: &mut SecretRandomGenerator<Gen>,
+) where
+    Scalar: RandomGenerable<UniformBinary>,
+    InCont: ContainerMut<Element = Scalar>,
+    Gen: ByteRandomGenerator,
+{
+    generator.fill_slice_with_random_uniform_binary(crs_lwe_secret_key.as_mut())
+}
+
+
+
+
+
+
+
+

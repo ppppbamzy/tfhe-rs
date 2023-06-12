@@ -309,3 +309,11 @@ where
     lhs.iter_mut()
         .for_each(|lhs| *lhs = (*lhs).wrapping_div(rhs));
 }
+/// add a constant (unsigned int?) scalar to each element of a slide
+pub fn slice_wrapping_scalar_add_assign<Scalar>(lhs: &mut[Scalar], rhs: Scalar)
+where
+Scalar: UnsignedInteger,
+{
+    lhs.iter_mut()
+        .for_each(|lhs| *lhs =(*lhs).wrapping_add(rhs) )
+}

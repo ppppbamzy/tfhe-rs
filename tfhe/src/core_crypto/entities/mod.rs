@@ -4,6 +4,8 @@
 //! associated to the object, e.g., `get_mask` for the entity `LweCiphertext`.
 
 pub mod cleartext;
+pub mod crs_lwe_ciphertext;
+pub mod crs_lwe_secret_key;
 pub mod ggsw_ciphertext;
 pub mod ggsw_ciphertext_list;
 pub mod glwe_ciphertext;
@@ -32,6 +34,7 @@ pub mod seeded_lwe_ciphertext;
 pub mod seeded_lwe_ciphertext_list;
 pub mod seeded_lwe_keyswitch_key;
 pub mod seeded_lwe_public_key;
+
 
 pub use crate::core_crypto::fft_impl::fft128::crypto::bootstrap::{
     Fourier128LweBootstrapKey, Fourier128LweBootstrapKeyOwned,

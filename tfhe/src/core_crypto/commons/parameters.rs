@@ -226,7 +226,11 @@ impl LweBskGroupingFactor {
 pub struct GgswPerLweMultiBitBskElement(pub usize);
 
 
-/// The number of scalars in a CRSLWE ciphertext, i.e. the number of scalar in a CRS LWE mask plus the number of scalar in the body.
+/// The number of scalars in a CRSLWE ciphertext, i.e. the number of scalar in a CRS LWE mask 
+/// plus the number of scalar in the body. That is, k = Dimension = size of the mask, d = Codimension = number of messages, 
+/// k+d = total size of the cipher:
+/// CRSLweSize(k+d, d )
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Serialize, Deserialize)]
 pub struct CRSLweSize(pub usize,pub usize);
 

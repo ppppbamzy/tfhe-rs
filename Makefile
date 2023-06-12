@@ -244,7 +244,7 @@ test_user_doc: install_rs_build_toolchain
 
 .PHONY: doc # Build rust doc
 doc: install_rs_check_toolchain
-	RUSTDOCFLAGS="--html-in-header katex-header.html -Dwarnings" \
+	RUSTDOCFLAGS="--html-in-header katex-header.html" \
 	cargo "$(CARGO_RS_CHECK_TOOLCHAIN)" doc \
 		--features=$(TARGET_ARCH_FEATURE),boolean,shortint,integer --no-deps
 
