@@ -6,6 +6,27 @@ on:
     branches:
       - "main"
   workflow_dispatch:
+    inputs:
+      boolean_bench:
+        description: 'Boolean Benchmarks'
+        default: false
+        type: boolean
+      shortint_bench:
+        description: 'Shortint Benchmarks'
+        default: false
+        type: boolean
+      integer_bench:
+        description: 'Integer Benchmarks'
+        default: false
+        type: boolean
+      pbs_bench:
+        description: 'PBS Benchmarks'
+        default: false
+        type: boolean
+      wasm_client_bench:
+        description: 'WASM Client Benchmarks'
+        default: false
+        type: boolean
 
 jobs:
   start-benchmarks:
