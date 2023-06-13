@@ -50,6 +50,7 @@ pub use crate::core_crypto::fft_impl::fft64::crypto::ggsw::{
 };
 pub use crate::core_crypto::fft_impl::fft64::math::polynomial::FourierPolynomial;
 pub use cleartext::*;
+pub use crs_lwe_ciphertext::*;
 pub use ggsw_ciphertext::*;
 pub use ggsw_ciphertext_list::*;
 pub use glwe_ciphertext::*;
