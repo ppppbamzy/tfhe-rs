@@ -12,7 +12,6 @@ use crate::core_crypto::entities::*;
 use crate::core_crypto::prelude::crs_lwe_ciphertext::CRSLweCiphertext;
 use crate::core_crypto::prelude::crs_lwe_secret_key::*;
 use rayon::prelude::*;
-use crate::core_crypto::prelude::crs_lwe_ciphertext::*;
    
 
 
@@ -107,6 +106,7 @@ pub fn fill_crs_lwe_mask_and_body_for_encryption<Scalar, KeyCont, InputCont, Out
 /// let seeder = seeder.as_mut();
 /// let mut encryption_generator =
 ///     EncryptionRandomGenerator::<ActivatedRandomGenerator>::new(seeder.seed(), seeder);
+/// //EncryptionRandomGenerator::<ByteRandomGenerator>::new(seeder.seed(), seeder);
 /// let mut secret_generator =
 ///     SecretRandomGenerator::<ActivatedRandomGenerator>::new(seeder.seed());
 ///
@@ -119,12 +119,16 @@ pub fn fill_crs_lwe_mask_and_body_for_encryption<Scalar, KeyCont, InputCont, Out
 /// let msg = 0u64;
 /// let delta = 60u64;
 /// let mut plaintext_list = PlaintextList::new(msg, PlaintextCount(crs_lwe_codimension.0));
-/// for (i, el) in plaintext_list.iter_mut().enumerate(){el=(el).wrapping_add((i as u64)<<delta);}
+/// let mut list = plaintext_list.as_mut();
+/// for (i, el) in list.iter_mut().enumerate(){
+/// //el=(el).wrapping_add((i as u64)<<delta);
+/// *el=*el+((i as u64)<<delta);
+/// }
 /// 
 /// 
 /// 
 /// // Create a new CRSLweCiphertext
-/// let mut crs_lwe = CRSLweCiphertext::new(0u64, crs_lwe_dimension.to_crs_lwe_size(crs_lwe_codimension), ciphertext_modulus);
+/// let mut crs_lwe = CRSLweCiphertext::new(0u64, crs_lwe_dimension.to_crs_lwe_size(crs_lwe_codimension), ciphertext_modulus,crs_lwe_codimension.0);
 ///
 /// encrypt_crs_lwe_ciphertext(
 ///     &crs_lwe_secret_key,
@@ -134,7 +138,7 @@ pub fn fill_crs_lwe_mask_and_body_for_encryption<Scalar, KeyCont, InputCont, Out
 ///     &mut encryption_generator,
 /// );
 /// 
-/// let decrypted_plaintext = decrypt_crs_lwe_ciphertext(&crs_lwe_secret_key, &crs_lwe);
+/// let mut decrypted_plaintext = decrypt_crs_lwe_ciphertext(&crs_lwe_secret_key, &crs_lwe);
 ///
 /// // Round and remove encoding
 /// // First create a decomposer working on the high 4 bits corresponding to our encoding.
@@ -154,13 +158,7 @@ pub fn fill_crs_lwe_mask_and_body_for_encryption<Scalar, KeyCont, InputCont, Out
 /// // Check we recovered the original message for each plaintext we encrypted
 /// cleartext_list.iter().for_each(|&elt| assert_eq!(elt, msg));
 ///
-/// let rounded = decomposer.closest_representable(decrypted_plaintext.0);
 ///
-/// // Remove the encoding
-/// let cleartext = rounded >> 60;
-///
-/// // Check we recovered the original message
-/// assert_eq!(cleartext, msg);
 /// ```
  
 
