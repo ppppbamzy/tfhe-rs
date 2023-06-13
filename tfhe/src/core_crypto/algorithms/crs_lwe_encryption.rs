@@ -9,6 +9,7 @@ use crate::core_crypto::commons::math::random::{ActivatedRandomGenerator, Random
 use crate::core_crypto::commons::parameters::*;
 use crate::core_crypto::commons::traits::*;
 use crate::core_crypto::entities::*;
+use crate::core_crypto::prelude::crs_lwe_ciphertext::CRSLweCiphertext;
 use crate::core_crypto::prelude::crs_lwe_secret_key::*;
 use rayon::prelude::*;
 use crate::core_crypto::prelude::crs_lwe_ciphertext::*;
@@ -83,7 +84,7 @@ pub fn fill_crs_lwe_mask_and_body_for_encryption<Scalar, KeyCont, InputCont, Out
 
 
 
-/// Encrypt an input plaintext in an output [`CRSLWE ciphertext`](`CRSLweCiphertext`).
+/// Encrypt several input plaintexts in an output [`CRSLWE ciphertext`](`CRSLweCiphertext`).
 ///
 /// See the [`LWE ciphertext formal definition`](`LweCiphertext#lwe-encryption`) for the definition
 /// of the encryption algorithm.
@@ -113,13 +114,17 @@ pub fn fill_crs_lwe_mask_and_body_for_encryption<Scalar, KeyCont, InputCont, Out
 /// let crs_lwe_secret_key =
 ///     allocate_and_generate_new_binary_crs_lwe_secret_key(crs_lwe_dimension,crs_lwe_codimension, &mut secret_generator);
 ///
-/// // Create the plaintext
+/// // Create the plaintexts
 /// 
-/// let msg = 3u64;
-/// let encoded_msg = msg << 60;
-/// let plaintext_list = PlaintextList::new(encoded_msg, PlaintextCount(crs_lwe_codimension.0));
+/// let msg = 0u64;
+/// let delta = 60u64;
+/// let mut plaintext_list = PlaintextList::new(msg, PlaintextCount(crs_lwe_codimension.0));
+/// for (i, el) in plaintext_list.iter_mut().enumerate(){el=(el).wrapping_add((i as u64)<<delta);}
+/// 
+/// 
+/// 
 /// // Create a new CRSLweCiphertext
-/// let mut crs_lwe = CRSLweCiphertext::new(0u64, crs_lwe_dimension.to_crs_lwe_size(crs_lwe_codimension.0), ciphertext_modulus);
+/// let mut crs_lwe = CRSLweCiphertext::new(0u64, crs_lwe_dimension.to_crs_lwe_size(crs_lwe_codimension), ciphertext_modulus);
 ///
 /// encrypt_crs_lwe_ciphertext(
 ///     &crs_lwe_secret_key,
@@ -128,12 +133,26 @@ pub fn fill_crs_lwe_mask_and_body_for_encryption<Scalar, KeyCont, InputCont, Out
 ///     crs_lwe_modular_std_dev,
 ///     &mut encryption_generator,
 /// );
-/// //to do
-/// let decrypted_plaintext = decrypt_lwe_ciphertext(&crs_lwe_secret_key, &crs_lwe);
+/// 
+/// let decrypted_plaintext = decrypt_crs_lwe_ciphertext(&crs_lwe_secret_key, &crs_lwe);
 ///
 /// // Round and remove encoding
 /// // First create a decomposer working on the high 4 bits corresponding to our encoding.
 /// let decomposer = SignedDecomposer::new(DecompositionBaseLog(4), DecompositionLevelCount(1));
+/// 
+/// decrypted_plaintext
+///     .iter_mut()
+///     .for_each(|elt| *elt.0 = decomposer.closest_representable(*elt.0));
+///
+/// // Get the raw vector
+/// let mut cleartext_list = decrypted_plaintext.into_container();
+/// // Remove the encoding
+/// cleartext_list.iter_mut().for_each(|elt| *elt = *elt >> 60);
+/// // Get the list immutably
+/// let cleartext_list = cleartext_list;
+///
+/// // Check we recovered the original message for each plaintext we encrypted
+/// cleartext_list.iter().for_each(|&elt| assert_eq!(elt, msg));
 ///
 /// let rounded = decomposer.closest_representable(decrypted_plaintext.0);
 ///
@@ -184,7 +203,8 @@ pub fn encrypt_crs_lwe_ciphertext<Scalar, KeyCont, OutputCont,InputCont, Gen>(
     );
 }
 
-/// Allocate a new [`CRSLWE ciphertext`](`CRSLweCiphertext`) and encrypt an input plaintext in it.
+/* 
+/// Allocate a new [`CRSLWE ciphertext`](`CRSLweCiphertext`) and encrypt an several plaintexts in it.
 ///
 /// See this [`formal definition`](`encrypt_lwe_ciphertext#formal-definition`) for the definition
 /// of the LWE encryption algorithm.
@@ -420,23 +440,23 @@ where
 
     new_ct
 }
+// */ 
 
-/// Decrypt an [`LWE ciphertext`](`LweCiphertext`) and return a noisy plaintext.
+/// Decrypt a [`CRSLWE ciphertext`](`CRSLweCiphertext`) and return a noisy plaintext.
 ///
-/// See [`encrypt_lwe_ciphertext`] for usage.
+/// See [`encrypt_crs_lwe_ciphertext`] for usage.
 ///
 /// # Formal Definition
 ///
-/// See the [`LWE ciphertext formal definition`](`LweCiphertext#lwe-decryption`) for the definition
+/// See the [`CRSLWE ciphertext formal definition`](`CRSLweCiphertext#lwe-decryption`) for the definition
 /// of the encryption algorithm.
-pub fn decrypt_crs_lwe_ciphertext<Scalar, KeyCont, OutputCont, InputCont>(
+pub fn decrypt_crs_lwe_ciphertext<Scalar, KeyCont, InputCont>(
     crs_lwe_secret_key: &CRSLweSecretKey<KeyCont>,
-    crs_lwe_ciphertext: &CRSLweCiphertext<InputCont>,
-) -> PlaintextList<OutputCont>
-where
+    crs_lwe_ciphertext: & CRSLweCiphertext<InputCont>,
+) -> PlaintextListOwned<Scalar>
+where   
     Scalar: UnsignedInteger,
     KeyCont: Container<Element = Scalar>,
-    OutputCont: ContainerMut<Element = Scalar>,
     InputCont: ContainerMut<Element = Scalar>,
 
 {
@@ -450,43 +470,47 @@ where
 
     let ciphertext_modulus = crs_lwe_ciphertext.ciphertext_modulus();
 
-    let (mask, body) = crs_lwe_ciphertext.get_mut_mask_and_body();
-    let bodies_mut = body.as_mut();
-    let mask_mut =mask.as_mut();
+    let (mask, body) = crs_lwe_ciphertext.get_mask_and_body();
+    let bodies_ref = body.as_ref();
+    let mask_ref =mask.as_ref();
     
-    let key_mut = crs_lwe_secret_key.as_ref();
-    let keys = key_mut.split_into(crs_lwe_ciphertext.crs_lwe_size().1 );
-    
-    //let msg = 0u64;
-    /* 
-    let msg:Scalar;
-    let plaintext_list = PlaintextList::new(msg, PlaintextCount(crs_lwe_ciphertext.crs_lwe_size().1));
-    let text_list = plaintext_list.as_mut();
-    text_list.iter_mut().zip(bodies_mut).for_each(|(text,bod)| *text =(*text).wrapping_add(*bod));
-    // */
-    
-    //Alternative?
+    let key_ref = crs_lwe_secret_key.as_ref();
+    let keys = key_ref.split_into(crs_lwe_ciphertext.crs_lwe_size().1 );
     //* 
-    let plaintext_list = PlaintextList::from_container( body.into_container() );
+    //let mut plaintext_list = PlaintextList::new(Scalar::ZERO, PlaintextCount(bodies_ref.len()));
+    let mut plaintext_list = PlaintextList::new(Scalar::ZERO, PlaintextCount(crs_lwe_ciphertext.crs_lwe_size().1));
+    
     
     // */
     
     let text_list = plaintext_list.as_mut();
+    // Copy the Bs in plaintext_list
+    text_list.iter_mut().zip(bodies_ref).for_each(|(text,bod)| *text =(*text).wrapping_add(*bod));
     
-    
-    text_list.iter_mut().zip(keys).for_each(|(text, key_chunk)| *text = (*text).wrapping_sub(slice_wrapping_dot_product(
-            mask.as_ref(),
-            key_chunk,
-        )) );
-    
-    if ciphertext_modulus.is_native_modulus() {      
+    if ciphertext_modulus.is_native_modulus() {
         text_list.iter_mut().zip(keys).for_each(|(text, key_chunk)| *text = (*text).wrapping_sub(slice_wrapping_dot_product(
-            mask.as_ref(),
+            mask_ref,
             key_chunk,
         )) );
+    }else{
+        text_list.iter_mut().zip(keys).for_each(|(text, key_chunk)| *text = (*text).wrapping_sub(slice_wrapping_dot_product(
+            mask_ref,
+            key_chunk,
+        )).wrapping_div(ciphertext_modulus.get_scaling_to_native_torus()),);
     }
+       
+    return plaintext_list;
+    //if ciphertext_modulus.is_native_modulus() {      
+        // text_list.iter_mut().zip(keys).for_each(|(text, key_chunk)| *text = (*text).wrapping_sub(slice_wrapping_dot_product(
+        //     mask.as_ref(),
+        //     key_chunk,
+        // )) );
+    //}
+   
+    
+    
 }
-
+/* 
 /// Encrypt an input plaintext list in an output [`LWE ciphertext list`](`LweCiphertextList`).
 ///
 /// See this [`formal definition`](`encrypt_lwe_ciphertext#formal-definition`) for the definition
@@ -1525,3 +1549,4 @@ where
 
     seeded_ct
 }
+// */
