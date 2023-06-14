@@ -7,7 +7,7 @@ expand_pub_use_fhe_type!(
 
 pub(in crate::high_level_api) use keys::{
     IntegerClientKey, IntegerCompactPublicKey, IntegerCompressedCompactPublicKey,
-    IntegerCompressedServerKey, IntegerConfig, IntegerServerKey,
+    IntegerCompressedServerKey, IntegerConfig, IntegerKeySwitchingKey, IntegerServerKey,
 };
 
 mod client_key;

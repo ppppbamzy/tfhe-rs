@@ -66,6 +66,7 @@ pub mod wopbs;
 
 pub use ciphertext::{CrtCiphertext, IntegerCiphertext, RadixCiphertext};
 pub use client_key::{ClientKey, CrtClientKey, RadixClientKey};
+pub use key_switching_key::KeySwitchingKey;
 pub use public_key::{CompressedCompactPublicKey, CompressedPublicKey, PublicKey};
 pub use server_key::{CheckError, CompressedServerKey, ServerKey};
 pub use u256::U256;

@@ -16,12 +16,10 @@ fn gen_multi_keys_test_rdxinteger_to_rdxinteger() {
         crate::integer::gen_keys_radix(PARAM_MESSAGE_2_CARRY_2, num_block);
 
     // Get casting key
-    let ksk_params = unsafe {
-        ShortintKeySwitchingParameters::new(
-            client_key_2.parameters().ks_base_log(),
-            client_key_2.parameters().ks_level(),
-        )
-    };
+    let ksk_params = ShortintKeySwitchingParameters::new(
+        client_key_2.parameters().ks_base_log(),
+        client_key_2.parameters().ks_level(),
+    );
     let ksk = KeySwitchingKey::new(
         (&client_key_1, &server_key_1),
         (&client_key_2, &server_key_2),
@@ -49,12 +47,10 @@ fn gen_multi_keys_test_crtinteger_to_crtinteger() {
     let (client_key_2, server_key_2) = crate::integer::gen_keys_crt(PARAM_MESSAGE_2_CARRY_2, basis);
 
     // Get casting key
-    let ksk_params = unsafe {
-        ShortintKeySwitchingParameters::new(
-            client_key_2.parameters().ks_base_log(),
-            client_key_2.parameters().ks_level(),
-        )
-    };
+    let ksk_params = ShortintKeySwitchingParameters::new(
+        client_key_2.parameters().ks_base_log(),
+        client_key_2.parameters().ks_level(),
+    );
     let ksk = KeySwitchingKey::new(
         (&client_key_1, &server_key_1),
         (&client_key_2, &server_key_2),
@@ -83,12 +79,10 @@ fn gen_multi_keys_test_crtinteger_to_crtinteger_fail() {
     let (client_key_2, server_key_2) = crate::integer::gen_keys_crt(PARAM_MESSAGE_1_CARRY_1, basis);
 
     // Get casting key
-    let ksk_params = unsafe {
-        ShortintKeySwitchingParameters::new(
-            client_key_2.parameters().ks_base_log(),
-            client_key_2.parameters().ks_level(),
-        )
-    };
+    let ksk_params = ShortintKeySwitchingParameters::new(
+        client_key_2.parameters().ks_base_log(),
+        client_key_2.parameters().ks_level(),
+    );
     let _ = KeySwitchingKey::new(
         (&client_key_1, &server_key_1),
         (&client_key_2, &server_key_2),
@@ -105,12 +99,10 @@ fn gen_multi_keys_test_integer_to_integer() {
     let (client_key_2, server_key_2) = crate::integer::gen_keys(PARAM_MESSAGE_2_CARRY_2);
 
     // Get casting key
-    let ksk_params = unsafe {
-        ShortintKeySwitchingParameters::new(
-            client_key_2.parameters().ks_base_log(),
-            client_key_2.parameters().ks_level(),
-        )
-    };
+    let ksk_params = ShortintKeySwitchingParameters::new(
+        client_key_2.parameters().ks_base_log(),
+        client_key_2.parameters().ks_level(),
+    );
     let ksk = KeySwitchingKey::new(
         (&client_key_1, &server_key_1),
         (&client_key_2, &server_key_2),
