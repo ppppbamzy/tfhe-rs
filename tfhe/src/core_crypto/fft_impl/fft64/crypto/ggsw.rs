@@ -276,8 +276,7 @@ impl<'a> FourierGgswCiphertextMutView<'a> {
     }
 }
 
-#[allow(unused)]
-type FourierGgswCiphertextOwned = FourierGgswCiphertext<ABox<[c64]>>;
+pub type FourierGgswCiphertextOwned = FourierGgswCiphertext<ABox<[c64]>>;
 
 impl FourierGgswCiphertext<ABox<[c64]>> {
     pub fn new(

@@ -12,6 +12,7 @@ use crate::core_crypto::fft_impl::fft64::crypto::ggsw::{
 };
 use crate::core_crypto::fft_impl::fft64::math::fft::{Fft, FftView};
 use concrete_fft::c64;
+use rayon::prelude::*;
 use std::sync::{mpsc, Condvar, Mutex};
 use std::thread;
 
@@ -309,9 +310,9 @@ pub fn multi_bit_blind_rotate_assign<Scalar, InputCont, OutputCont, KeyCont>(
     thread_count: ThreadCount,
 ) where
     // CastInto required for PBS modulus switch which returns a usize
-    Scalar: UnsignedTorus + CastInto<usize> + CastFrom<usize> + Sync,
+    Scalar: UnsignedTorus + CastInto<usize> + CastFrom<usize> + Sync + Send,
     InputCont: Container<Element = Scalar>,
-    OutputCont: ContainerMut<Element = Scalar>,
+    OutputCont: ContainerMut<Element = Scalar> + Sync + Send,
     KeyCont: Container<Element = c64> + Sync,
 {
     assert_eq!(
@@ -379,9 +380,6 @@ pub fn multi_bit_blind_rotate_assign<Scalar, InputCont, OutputCont, KeyCont>(
 
     let work_queue = Mutex::new(work_queue);
 
-    // Each producer thread works in a dedicated slot of the buffer
-    let thread_buffers: usize = thread_count.0;
-
     let lut_poly_size = accumulator.polynomial_size();
     let monomial_degree = pbs_modulus_switch(
         *lwe_body.data,
@@ -401,7 +399,7 @@ pub fn multi_bit_blind_rotate_assign<Scalar, InputCont, OutputCont, KeyCont>(
             )
         });
 
-    let fourier_multi_bit_ggsw_buffers = (0..thread_buffers)
+    let fourier_multi_bit_ggsw_buffers = (0..thread_count.0)
         .map(|_| {
             (
                 Mutex::new(false),
@@ -418,10 +416,14 @@ pub fn multi_bit_blind_rotate_assign<Scalar, InputCont, OutputCont, KeyCont>(
 
     let (tx, rx) = mpsc::channel::<usize>();
 
+    let senders: Vec<_> = (0..thread_count.0).map(|_| tx.clone()).collect();
+
     let fft = Fft::new(multi_bit_bsk.polynomial_size());
     let fft = fft.as_view();
-    thread::scope(|s| {
-        let produce_multi_bit_fourier_ggsw = |thread_id: usize, tx: mpsc::Sender<usize>| {
+    let produce_multi_bit_fourier_ggsw =
+        |thread_id: usize,
+         buffer: &(Mutex<bool>, Condvar, Mutex<FourierGgswCiphertextOwned>),
+         tx: mpsc::Sender<usize>| {
             let mut buffers = ComputationBuffers::new();
 
             buffers.resize(fft.forward_scratch().unwrap().unaligned_bytes_required());
@@ -431,9 +433,7 @@ pub fn multi_bit_blind_rotate_assign<Scalar, InputCont, OutputCont, KeyCont>(
 
             let work_queue = &work_queue;
 
-            let dest_idx = thread_id;
-            let (ready_for_consumer_lock, condvar, fourier_ggsw_buffer) =
-                &fourier_multi_bit_ggsw_buffers[dest_idx];
+            let (ready_for_consumer_lock, condvar, fourier_ggsw_buffer) = buffer;
 
             loop {
                 let maybe_work = {
@@ -466,98 +466,106 @@ pub fn multi_bit_blind_rotate_assign<Scalar, InputCont, OutputCont, KeyCont>(
                 drop(fourier_ggsw_buffer);
 
                 *ready_for_consumer = true;
-                tx.send(dest_idx).unwrap();
+                // Indicate that the slot at idx thread_id is ready for processing
+                tx.send(thread_id).unwrap();
 
                 // Wake threads waiting on the condvar
                 condvar.notify_all();
             }
         };
 
-        let threads: Vec<_> = (0..thread_count.0)
-            .map(|id| {
-                let tx = tx.clone();
-                s.spawn(move || produce_multi_bit_fourier_ggsw(id, tx))
-            })
-            .collect();
-
-        // We initialize ct0 for the successive external products
-        let ct0 = accumulator;
-        let mut ct1 = GlweCiphertext::new(
-            Scalar::ZERO,
-            ct0.glwe_size(),
-            ct0.polynomial_size(),
-            ct0.ciphertext_modulus(),
-        );
-        let ct1 = &mut ct1;
-
-        let mut buffers = ComputationBuffers::new();
-
-        buffers.resize(
-            add_external_product_assign_scratch::<Scalar>(
-                multi_bit_bsk.glwe_size(),
-                multi_bit_bsk.polynomial_size(),
-                fft,
-            )
-            .unwrap()
-            .unaligned_bytes_required(),
-        );
-
-        let mut src_idx = 1usize;
-
-        for _ in 0..multi_bit_bsk.multi_bit_input_lwe_dimension().0 {
-            src_idx ^= 1;
-            let idx = rx.recv().unwrap();
-            let (ready_lock, condvar, multi_bit_fourier_ggsw) =
-                &fourier_multi_bit_ggsw_buffers[idx];
-
-            let (src_ct, mut dst_ct) = if src_idx == 0 {
-                (ct0.as_view(), ct1.as_mut_view())
-            } else {
-                (ct1.as_view(), ct0.as_mut_view())
-            };
-
-            dst_ct.as_mut().fill(Scalar::ZERO);
-
-            let mut ready = ready_lock.lock().unwrap();
-            assert!(*ready);
-
-            let multi_bit_fourier_ggsw = multi_bit_fourier_ggsw.lock().unwrap();
-            add_external_product_assign(
-                dst_ct,
-                multi_bit_fourier_ggsw.as_view(),
-                src_ct,
-                fft,
-                buffers.stack(),
+    rayon::join(
+        || {
+            fourier_multi_bit_ggsw_buffers
+                .par_iter()
+                .zip(senders.into_par_iter())
+                .enumerate()
+                .for_each(|(idx, (buffer, tx))| {
+                    produce_multi_bit_fourier_ggsw(idx, buffer, tx);
+                })
+        },
+        || {
+            // This may look silly but it allows to move rx in the closure without moving everything
+            // else if we were using a 'move || {}' style closure
+            let rx = rx;
+            // We initialize ct0 for the successive external products
+            let ct0 = accumulator;
+            let mut ct1 = GlweCiphertext::new(
+                Scalar::ZERO,
+                ct0.glwe_size(),
+                ct0.polynomial_size(),
+                ct0.ciphertext_modulus(),
             );
-            drop(multi_bit_fourier_ggsw);
+            let ct1 = &mut ct1;
 
-            *ready = false;
-            // Wake a single producer thread sleeping on the condvar (only one will get to work
-            // anyways)
-            condvar.notify_one();
-        }
+            let mut buffers = ComputationBuffers::new();
 
-        if src_idx == 0 {
-            ct0.as_mut().copy_from_slice(ct1.as_ref());
-        }
-
-        let ciphertext_modulus = ct0.ciphertext_modulus();
-        if !ciphertext_modulus.is_native_modulus() {
-            // When we convert back from the fourier domain, integer values will contain up to 53
-            // MSBs with information. In our representation of power of 2 moduli < native modulus we
-            // fill the MSBs and leave the LSBs empty, this usage of the signed decomposer allows to
-            // round while keeping the data in the MSBs
-            let signed_decomposer = SignedDecomposer::new(
-                DecompositionBaseLog(ciphertext_modulus.get_custom_modulus().ilog2() as usize),
-                DecompositionLevelCount(1),
+            buffers.resize(
+                add_external_product_assign_scratch::<Scalar>(
+                    multi_bit_bsk.glwe_size(),
+                    multi_bit_bsk.polynomial_size(),
+                    fft,
+                )
+                .unwrap()
+                .unaligned_bytes_required(),
             );
-            ct0.as_mut()
-                .iter_mut()
-                .for_each(|x| *x = signed_decomposer.closest_representable(*x));
-        }
 
-        threads.into_iter().for_each(|t| t.join().unwrap());
-    });
+            let mut src_idx = 1usize;
+
+            for _ in 0..multi_bit_bsk.multi_bit_input_lwe_dimension().0 {
+                src_idx ^= 1;
+                let idx = rx.recv().unwrap();
+                let (ready_lock, condvar, multi_bit_fourier_ggsw) =
+                    &fourier_multi_bit_ggsw_buffers[idx];
+
+                let (src_ct, mut dst_ct) = if src_idx == 0 {
+                    (ct0.as_view(), ct1.as_mut_view())
+                } else {
+                    (ct1.as_view(), ct0.as_mut_view())
+                };
+
+                dst_ct.as_mut().fill(Scalar::ZERO);
+
+                let mut ready = ready_lock.lock().unwrap();
+                assert!(*ready);
+
+                let multi_bit_fourier_ggsw = multi_bit_fourier_ggsw.lock().unwrap();
+                add_external_product_assign(
+                    dst_ct,
+                    multi_bit_fourier_ggsw.as_view(),
+                    src_ct,
+                    fft,
+                    buffers.stack(),
+                );
+                drop(multi_bit_fourier_ggsw);
+
+                *ready = false;
+                // Wake a single producer thread sleeping on the condvar (only one will get to work
+                // anyways)
+                condvar.notify_one();
+            }
+
+            if src_idx == 0 {
+                ct0.as_mut().copy_from_slice(ct1.as_ref());
+            }
+
+            let ciphertext_modulus = ct0.ciphertext_modulus();
+            if !ciphertext_modulus.is_native_modulus() {
+                // When we convert back from the fourier domain, integer values will contain up to
+                // 53 MSBs with information. In our representation of power of 2
+                // moduli < native modulus we fill the MSBs and leave the LSBs
+                // empty, this usage of the signed decomposer allows to round while
+                // keeping the data in the MSBs
+                let signed_decomposer = SignedDecomposer::new(
+                    DecompositionBaseLog(ciphertext_modulus.get_custom_modulus().ilog2() as usize),
+                    DecompositionLevelCount(1),
+                );
+                ct0.as_mut()
+                    .iter_mut()
+                    .for_each(|x| *x = signed_decomposer.closest_representable(*x));
+            }
+        },
+    );
 }
 
 /// Perform a programmable bootstrap with given an input [`LWE ciphertext`](`LweCiphertext`), a
@@ -779,9 +787,9 @@ pub fn multi_bit_programmable_bootstrap_lwe_ciphertext<
     thread_count: ThreadCount,
 ) where
     // CastInto required for PBS modulus switch which returns a usize
-    Scalar: UnsignedTorus + CastInto<usize> + CastFrom<usize> + Sync,
+    Scalar: UnsignedTorus + CastInto<usize> + CastFrom<usize> + Sync + Send,
     InputCont: Container<Element = Scalar>,
-    OutputCont: ContainerMut<Element = Scalar>,
+    OutputCont: ContainerMut<Element = Scalar> + Sync + Send,
     AccCont: Container<Element = Scalar>,
     KeyCont: Container<Element = c64> + Sync,
 {

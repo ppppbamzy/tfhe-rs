@@ -47,7 +47,9 @@ pub use crate::core_crypto::fft_impl::fft64::crypto::bootstrap::{
     FourierLweBootstrapKey, FourierLweBootstrapKeyOwned,
 };
 pub use crate::core_crypto::fft_impl::fft64::crypto::ggsw::{
-    FourierGgswCiphertext, FourierGgswCiphertextList, FourierGgswLevelMatrix, FourierGgswLevelRow,
+    FourierGgswCiphertext, FourierGgswCiphertextList, FourierGgswCiphertextMutView,
+    FourierGgswCiphertextOwned, FourierGgswCiphertextView, FourierGgswLevelMatrix,
+    FourierGgswLevelRow,
 };
 pub use crate::core_crypto::fft_impl::fft64::math::polynomial::FourierPolynomial;
 pub use cleartext::*;
