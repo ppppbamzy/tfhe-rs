@@ -264,3 +264,38 @@ impl CRSLweCodimension {
         CRSLweSize(self.0 + dim.0,self.0)
     }
 }
+
+/// The number of polynomials in a CRSGLWE ciphertext, i.e. the number of polynomials in a CRSGLWE mask
+/// plus the number of polynomials in a CRSGLWE body.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Serialize, Deserialize)]
+pub struct CRSGlweSize(pub usize,pub usize);
+
+impl CRSGlweSize {
+    /// Return the associated [`GlweDimension`].
+    pub fn to_crs_glwe_dimension(&self) -> CRSGlweDimension {
+        CRSGlweDimension(self.0 -self.1)
+    }
+    pub fn to_crs_glwe_codimension(&self) -> CRSGlweCodimension {
+        CRSGlweCodimension(self.1)
+    }
+}
+
+/// The number of polynomials of a CRSGLWE mask, or the size of a CRSGLWE secret key.
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Serialize, Deserialize)]
+pub struct CRSGlweDimension(pub usize);
+
+impl CRSGlweDimension {
+    /// Return the associated [`CRSGlweSize`].
+    pub fn to_crs_glwe_size(&self,co: CRSLweCodimension ) -> CRSGlweSize {
+        CRSGlweSize(self.0 + co.0,co.0 )
+    }
+}
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Serialize, Deserialize)]
+pub struct CRSGlweCodimension(pub usize);
+
+impl CRSGlweCodimension {
+    /// Return the associated [`CRSGlweSize`].
+    pub fn to_crs_glwe_size(&self, dim: CRSGlweDimension ) -> CRSGlweSize {
+        CRSGlweSize(self.0 + dim.0,self.0)
+    }
+}

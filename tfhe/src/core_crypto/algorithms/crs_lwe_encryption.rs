@@ -2,16 +2,16 @@
 //! decryption`](`LweCiphertext#lwe-encryption`).
 
 use crate::core_crypto::algorithms::slice_algorithms::*;
-use crate::core_crypto::algorithms::*;
+//use crate::core_crypto::algorithms::*;
 use crate::core_crypto::commons::dispersion::DispersionParameter;
 use crate::core_crypto::commons::generators::{EncryptionRandomGenerator, SecretRandomGenerator};
-use crate::core_crypto::commons::math::random::{ActivatedRandomGenerator, RandomGenerator};
+//use crate::core_crypto::commons::math::random::{ActivatedRandomGenerator, RandomGenerator};
 use crate::core_crypto::commons::parameters::*;
 use crate::core_crypto::commons::traits::*;
 use crate::core_crypto::entities::*;
 use crate::core_crypto::prelude::crs_lwe_ciphertext::CRSLweCiphertext;
 use crate::core_crypto::prelude::crs_lwe_secret_key::*;
-use rayon::prelude::*;
+//use rayon::prelude::*;
    
 
 
@@ -59,13 +59,7 @@ pub fn fill_crs_lwe_mask_and_body_for_encryption<Scalar, KeyCont, InputCont, Out
         slice_wrapping_scalar_mul_assign(mask_mut, torus_scaling);
         slice_wrapping_scalar_mul_assign(bodies_mut, torus_scaling);
     }
-     
-    //*output_body.data = generator.random_noise_custom_mod(noise_parameters, ciphertext_modulus);
-    //*output_body.data = (*output_body.data).wrapping_add(encoded.0);
-
-    // compute the multisum between the secret key and the mask
-
-    //la partie difficile!!!!
+    // compute the multisum between the secret key and the mask    
     let key_mut = crs_lwe_secret_key.as_ref();
     let keys = key_mut.split_into(bodies_mut.len() as usize );
     
@@ -99,6 +93,7 @@ pub fn fill_crs_lwe_mask_and_body_for_encryption<Scalar, KeyCont, InputCont, Out
 /// let crs_lwe_dimension = CRSLweDimension(742);
 /// let crs_lwe_codimension = CRSLweCodimension(12);
 /// let crs_lwe_modular_std_dev = StandardDev(0.000007069849454709433);
+/// //let crs_lwe_modular_std_dev = StandardDev(0.7069849454709433);
 /// let ciphertext_modulus = CiphertextModulus::new_native();
 ///
 /// // Create the PRNG
@@ -121,15 +116,15 @@ pub fn fill_crs_lwe_mask_and_body_for_encryption<Scalar, KeyCont, InputCont, Out
 /// let mut plaintext_list = PlaintextList::new(msg, PlaintextCount(crs_lwe_codimension.0));
 /// let mut list = plaintext_list.as_mut();
 /// for (i, el) in list.iter_mut().enumerate(){
-/// //el=(el).wrapping_add((i as u64)<<delta);
-/// *el=*el+((i as u64)<<delta);
+/// *el=(*el).wrapping_add((i as u64)<<delta);
+/// //*el=*el+((i as u64)<<delta);
 /// }
 /// 
 /// 
 /// 
 /// // Create a new CRSLweCiphertext
 /// let mut crs_lwe = CRSLweCiphertext::new(0u64, crs_lwe_dimension.to_crs_lwe_size(crs_lwe_codimension), ciphertext_modulus,crs_lwe_codimension.0);
-///
+///println!("Hello");
 /// encrypt_crs_lwe_ciphertext(
 ///     &crs_lwe_secret_key,
 ///     &mut crs_lwe,
@@ -151,18 +146,19 @@ pub fn fill_crs_lwe_mask_and_body_for_encryption<Scalar, KeyCont, InputCont, Out
 /// // Get the raw vector
 /// let mut cleartext_list = decrypted_plaintext.into_container();
 /// // Remove the encoding
-/// cleartext_list.iter_mut().for_each(|elt| *elt = *elt >> 60);
+/// cleartext_list.iter_mut().for_each(|elt| *elt = (*elt >> delta));
 /// // Get the list immutably
 /// let cleartext_list = cleartext_list;
 ///
 /// // Check we recovered the original message for each plaintext we encrypted
-/// cleartext_list.iter().for_each(|&elt| assert_eq!(elt, msg));
+/// cleartext_list.iter().for_each(|&elt| println!("{}",elt) );
+/// cleartext_list.iter().for_each(|&elt| assert_eq!(elt, msg,"different messages"));
 ///
 ///
 /// ```
  
 
-//
+
 
 
 
@@ -182,11 +178,11 @@ pub fn encrypt_crs_lwe_ciphertext<Scalar, KeyCont, OutputCont,InputCont, Gen>(
     Gen: ByteRandomGenerator,
 {
     assert!(
-        output.crs_lwe_size().to_crs_lwe_dimension() == crs_lwe_secret_key.crs_lwe_dimension(),
+        output.crs_lwe_size().to_crs_lwe_dimension().0 == crs_lwe_secret_key.crs_lwe_dimension().0,
         "Mismatch between CRSLweDimension of output ciphertext and input secret key. \
         Got {:?} in output, and {:?} in secret key.",
-        output.crs_lwe_size().to_crs_lwe_dimension(),
-        crs_lwe_secret_key.crs_lwe_dimension()
+        output.crs_lwe_size().to_crs_lwe_dimension().0,
+        crs_lwe_secret_key.crs_lwe_dimension().0
     );
 
     let (mut mask, mut body) = output.get_mut_mask_and_body();
@@ -200,6 +196,12 @@ pub fn encrypt_crs_lwe_ciphertext<Scalar, KeyCont, OutputCont,InputCont, Gen>(
         generator,
     );
 }
+
+
+
+
+
+ 
 
 /* 
 /// Allocate a new [`CRSLWE ciphertext`](`CRSLweCiphertext`) and encrypt an several plaintexts in it.

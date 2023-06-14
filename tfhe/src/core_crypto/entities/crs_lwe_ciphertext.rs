@@ -161,28 +161,28 @@ impl<T: UnsignedInteger, C: ContainerMut<Element = T>> AsMut<[T]> for CRSLweMask
 /// A CRS LWE ciphertext is an encryption of several plaintexts.
 /// It is secure under the hardness assumption called Learning With Errors (LWE).//no idea
 /// 
-/// We indicate an LWE ciphertext of a plaintext $\mathsf{pt} \in\mathbb{Z}\_q$ as the following
-/// couple: $$\mathsf{ct} = \left( \vec{a} , b\right) \in \mathsf{LWE}^n\_{\vec{s}}( \mathsf{pt}
-/// )\subseteq \mathbb{Z}\_q^{(n+1)}$$ We call $q$ the ciphertext modulus and $n$ the LWE dimension.
+/// We indicate a CRSLWE ciphertext of several plaintexts $\mathsf{pt} \in\mathbb{Z}\_q^d$ as the following
+/// vector: $$\mathsf{ct} = \left( \vec{a} , \vec{b}\right) \in \mathsf{CRS LWE}^n\_{\vec{s}}( \mathsf{pt}
+/// )\subseteq \mathbb{Z}\_q^{(n+d)}$$ We call $q$ the ciphertext modulus and $n$ the CRS LWE dimension.
 ///
 /// ## CRS LWE dimension
-/// It corresponds to the number of element in the CRS LWE secret key.
+/// It corresponds to the number of element in each CRS LWE secret key.
 /// In a CRS LWE ciphertext, it is the length of the vector $\vec{a}$.
-/// At [`encryption`](`crate::core_crypto::algorithms::encrypt_lwe_ciphertext`) time, it is
+/// At [`encryption`](`crate::core_crypto::algorithms::encrypt_crs_lwe_ciphertext`) time, it is
 /// the number of uniformly random integers generated.
 ///
 /// ## CRS LWE codimension
-/// It corresponds to the number of element in the CRS LWE body.
+/// It corresponds to the number of element in the CRS LWE body, here called $d$.
 ///
-/// ## LWE Encryption
+/// ## CRS LWE Encryption
 /// ###### inputs:
-/// - $\mathsf{pt}\in\mathbb{Z}\_q$: a plaintext
+/// - $\mathsf{pt}\in\mathbb{Z}\_q^d$: a plaintext list
 /// - $\vec{s}\in\mathbb{Z}\_q^n$: a secret key
 /// - $\mathcal{D\_{\sigma^2,\mu}}$: a normal distribution of variance $\sigma^2$ and a mean $\mu$
 ///
 /// ###### outputs:
-/// - $\mathsf{ct} = \left( \vec{a} , b\right) \in \mathsf{LWE}^n\_{\vec{s}}( \mathsf{pt} )\subseteq
-///   \mathbb{Z}\_q^{(n+1)}$: an LWE ciphertext
+/// - $\mathsf{ct} = \left( \vec{a} , \vec{b}\right) \in \mathsf{CRS LWE}^n\_{\vec{s}}( \mathsf{pt} )\subseteq
+///   \mathbb{Z}\_q^{(n+d)}$: a CRS-LWE ciphertext
 ///
 /// ###### algorithm:
 /// 1. uniformly sample a vector $\vec{a}\in\mathbb{Z}\_q^n$
@@ -261,9 +261,9 @@ impl<Scalar: UnsignedInteger, C: Container<Element = Scalar>> CRSLweCiphertext<C
     ///
     /// // Demonstrate how to recover the allocated container
     /// let underlying_container: Vec<u64> = crs_lwe.into_container();
-    /// let codim =crs_lwe.codim
+    /// let codi =crs_lwe.codim;
     /// // Recreate a ciphertext using from_container
-    /// let mut crs_lwe = CRSLweCiphertext::from_container(underlying_container, ciphertext_modulus,codim);
+    /// let mut crs_lwe = CRSLweCiphertext::from_container(underlying_container, ciphertext_modulus,codi);
     ///
     /// assert_eq!(crs_lwe.crs_lwe_size(), crs_lwe_size);
     /// assert_eq!(crs_lwe.get_mask().crs_lwe_dimension(), crs_lwe_size.to_lwe_dimension());
@@ -284,8 +284,9 @@ impl<Scalar: UnsignedInteger, C: Container<Element = Scalar>> CRSLweCiphertext<C
         );
         CRSLweCiphertext {
             data: container,
-            ciphertext_modulus,
             codim: cod,
+            ciphertext_modulus,
+            
         }
     }
 
