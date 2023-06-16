@@ -110,7 +110,7 @@ impl<Scalar, C: Container<Element = Scalar>> CRSGlweSecretKey<C> {
 
     /// Consume the [`CRSGlweSecretKey`] and return it interpreted as an [`CRSLweSecretKey`].
     pub fn into_crs_lwe_secret_key(self) -> CRSLweSecretKey<C> {
-        CRSLweSecretKey::from_container(self.data)
+        CRSLweSecretKey::from_container(self.data, self.codimension)
     }
 
     /// Interpret the [`CRSGlweSecretKey`] as a [`PolynomialList`].
@@ -152,8 +152,8 @@ where
         polynomial_size: PolynomialSize,
     ) -> CRSGlweSecretKeyOwned<Scalar> {
         CRSGlweSecretKeyOwned::from_container(
-            vec![value; glwe_dimension.0 * polynomial_size.0*glwe_codimension.0],
-            polynomial_size,
+            vec![value; crs_glwe_dimension.0 * polynomial_size.0*crs_glwe_codimension.0],
+            polynomial_size,crs_glwe_codimension.0
         )
     }
 
@@ -178,6 +178,7 @@ where
     ///
     /// let crs_glwe_secret_key: CRSGlweSecretKeyOwned<u64> = CRSGlweSecretKey::generate_new_binary(
     ///     crs_glwe_size.to_crs_glwe_dimension(),
+    ///     crs_glwe_size.to_crs_glwe_codimension(),
     ///     polynomial_size,
     ///     &mut secret_generator,
     /// );

@@ -7,6 +7,7 @@ pub mod cleartext;
 pub mod crs_lwe_ciphertext;
 pub mod crs_glwe_ciphertext;
 pub mod crs_lwe_secret_key;
+pub mod crs_glwe_secret_key;
 pub mod ggsw_ciphertext;
 pub mod ggsw_ciphertext_list;
 pub mod glwe_ciphertext;
@@ -52,6 +53,8 @@ pub use crate::core_crypto::fft_impl::fft64::crypto::ggsw::{
 pub use crate::core_crypto::fft_impl::fft64::math::polynomial::FourierPolynomial;
 pub use cleartext::*;
 pub use crs_lwe_ciphertext::*;
+pub use crs_lwe_secret_key::*;
+pub use crs_glwe_secret_key::*;
 pub use crs_glwe_ciphertext::*;
 pub use ggsw_ciphertext::*;
 pub use ggsw_ciphertext_list::*;
