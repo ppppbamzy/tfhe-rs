@@ -84,7 +84,7 @@ pub fn fill_crs_glwe_mask_and_body_for_encryption_assign<KeyCont, BodyCont, Mask
 /// // DISCLAIMER: these toy example parameters are not guaranteed to be secure or yield correct
 /// // computations
 /// // Define parameters for GlweCiphertext creation
-/// let crs_glwe_size = CRSGlweSize(2,2);
+/// let crs_glwe_size = CRSGlweSize(4,2);
 /// let polynomial_size = PolynomialSize(1024);
 /// let crs_glwe_modular_std_dev = StandardDev(0.00000000000000029403601535432533);
 /// let ciphertext_modulus = CiphertextModulus::new_native();
@@ -103,21 +103,29 @@ pub fn fill_crs_glwe_mask_and_body_for_encryption_assign<KeyCont, BodyCont, Mask
 ///     polynomial_size,
 ///     &mut secret_generator,
 /// );
+/// //PlaintextList
+/// let msg = 0u64;
+/// let delta = 60u64;
+/// let mut plaintext_list = PlaintextList::new(msg, PlaintextCount(crs_glwe_size.1*polynomial_size.0));
+/// let mut list = plaintext_list.as_mut();
+/// for (i, el) in list.iter_mut().enumerate(){
+/// *el=(*el).wrapping_add((i as u64)<<delta);
 ///
-/// // Create the plaintext
-/// let msg = 3u64;
-/// let encoded_msg = msg << 60;
-///
+/// }
 /// // Create a new GlweCiphertext
-/// let mut crs_glwe = CRSGlweCiphertext::new(0u64, crs_glwe_size, polynomial_size, ciphertext_modulus,crs_glwe_size.1);
+/// let mut crs_glwe = CRSGlweCiphertext::new(0u64, crs_glwe_size, polynomial_size, ciphertext_modulus);
 ///
 /// // Manually fill the body with the encoded message
-/// glwe.get_mut_body().as_mut().fill(encoded_msg);
-///
+/// //to do
+/// crs_glwe.into_iter().skip(crs_glwe_size.0-crs_glwe_size.1).zip(list).for_each(|(body,word)| {
+///     body.get_mut_body().as_mut().fill(word);
+/// } );
+/// 
+/// //not done yet
 /// encrypt_crs_glwe_ciphertext_assign(
-///     &glwe_secret_key,
-///     &mut glwe,
-///     glwe_modular_std_dev,
+///     &crs_glwe_secret_key,
+///     &mut crs_glwe,
+///     crs_glwe_modular_std_dev,
 ///     &mut encryption_generator,
 /// );
 ///
