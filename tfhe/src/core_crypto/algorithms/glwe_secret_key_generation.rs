@@ -114,9 +114,9 @@ where
 ///     SecretRandomGenerator::<ActivatedRandomGenerator>::new(seeder.seed());
 ///
 /// let mut crs_glwe_secret_key =
-///     CRSGlweSecretKey::new_empty_key(0u64, crs_glwe_size.to_glwe_dimension(),crs_glwe_size.to_glwe_codimension(), polynomial_size);
+///     CRSGlweSecretKey::new_empty_key(0u64, crs_glwe_size.to_crs_glwe_dimension(),crs_glwe_size.to_crs_glwe_codimension(), polynomial_size);
 ///
-/// generate_binary_glwe_secret_key(&mut crs_glwe_secret_key, &mut secret_generator);
+/// generate_binary_crs_glwe_secret_key(&mut crs_glwe_secret_key, &mut secret_generator);
 ///
 /// // Check all coefficients are not zero as we just generated a new key
 /// // Note probability of this assert failing is (1/2)^polynomial_size or ~5.6 * 10^-309 for a

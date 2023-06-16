@@ -107,7 +107,7 @@ impl<Scalar: UnsignedInteger, C: Container<Element = Scalar> > CRSLweMask<C> {
     /// let crs_lwe_mask = CRSLweMask::from_container(vec![0u64; crs_lwe_dimension.0], ciphertext_modulus); //A regarder!!!!!!!!!!!!!!!!!!!!!
     ///
     /// assert_eq!(crs_lwe_mask.crs_lwe_dimension(), crs_lwe_dimension);
-    /// assert_eq!(lwe_mask.ciphertext_modulus(), ciphertext_modulus);
+    /// assert_eq!(crs_lwe_mask.ciphertext_modulus(), ciphertext_modulus);
     /// ```
     pub fn from_container(container: C, ciphertext_modulus: CiphertextModulus<C::Element>) -> Self {
         CRSLweMask {
@@ -252,26 +252,26 @@ impl<Scalar: UnsignedInteger, C: Container<Element = Scalar>> CRSLweCiphertext<C
     /// let mut crs_lwe = CRSLweCiphertext::new(0u64, crs_lwe_size, ciphertext_modulus);
     ///
     /// assert_eq!(crs_lwe.crs_lwe_size(), crs_lwe_size);
-    /// assert_eq!(crs_lwe.get_mask().crs_lwe_dimension(), crs_lwe_size.to_lwe_dimension());
+    /// assert_eq!(crs_lwe.get_mask().crs_lwe_dimension(), crs_lwe_size.to_crs_lwe_dimension());
     /// assert_eq!(
     ///     crs_lwe.get_mut_mask().crs_lwe_dimension(),
-    ///     crs_lwe_size.to_lwe_dimension()
+    ///     crs_lwe_size.to_crs_lwe_dimension()
     /// );
     /// assert_eq!(crs_lwe.ciphertext_modulus(), ciphertext_modulus);
     ///
     /// // Demonstrate how to recover the allocated container
     /// let underlying_container: Vec<u64> = crs_lwe.into_container();
-    /// let codi =crs_lwe.codim;
+    /// let codi =crs_lwe_size.1;
     /// // Recreate a ciphertext using from_container
     /// let mut crs_lwe = CRSLweCiphertext::from_container(underlying_container, ciphertext_modulus,codi);
     ///
     /// assert_eq!(crs_lwe.crs_lwe_size(), crs_lwe_size);
-    /// assert_eq!(crs_lwe.get_mask().crs_lwe_dimension(), crs_lwe_size.to_lwe_dimension());
+    /// assert_eq!(crs_lwe.get_mask().crs_lwe_dimension(), crs_lwe_size.to_crs_lwe_dimension());
     /// assert_eq!(
-    ///     crs_lwe.get_mut_mask().lwe_dimension(),
-    ///     crs_lwe_size.to_lwe_dimension()
+    ///     crs_lwe.get_mut_mask().crs_lwe_dimension(),
+    ///     crs_lwe_size.to_crs_lwe_dimension()
     /// );
-    /// assert_eq!(lwe.ciphertext_modulus(), ciphertext_modulus);
+    /// assert_eq!(crs_lwe.ciphertext_modulus(), ciphertext_modulus);
     /// ```
     pub fn from_container(
         container: C,
@@ -408,9 +408,8 @@ impl<Scalar: UnsignedInteger> CRSLweCiphertextOwned<Scalar> {
         fill_with: Scalar,
         crs_lwe_size: CRSLweSize,
         ciphertext_modulus: CiphertextModulus<Scalar>,
-        cod: usize,
     ) -> CRSLweCiphertextOwned<Scalar> {
-        CRSLweCiphertextOwned::from_container(vec![fill_with; crs_lwe_size.0], ciphertext_modulus,cod)
+        CRSLweCiphertextOwned::from_container(vec![fill_with; crs_lwe_size.0], ciphertext_modulus,crs_lwe_size.1)
     }
 }
 

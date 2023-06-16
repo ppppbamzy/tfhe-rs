@@ -79,7 +79,7 @@ pub fn fill_crs_lwe_mask_and_body_for_encryption<Scalar, KeyCont, InputCont, Out
 
 /// Encrypt several input plaintexts in an output [`CRSLWE ciphertext`](`CRSLweCiphertext`).
 ///
-/// See the [`LWE ciphertext formal definition`](`LweCiphertext#lwe-encryption`) for the definition
+/// See the [`CRSLWE ciphertext formal definition`](`CRSLweCiphertext#crs_lwe-encryption`) for the definition
 /// of the encryption algorithm.
 ///
 /// # Example
@@ -123,7 +123,7 @@ pub fn fill_crs_lwe_mask_and_body_for_encryption<Scalar, KeyCont, InputCont, Out
 /// 
 /// 
 /// // Create a new CRSLweCiphertext
-/// let mut crs_lwe = CRSLweCiphertext::new(0u64, crs_lwe_dimension.to_crs_lwe_size(crs_lwe_codimension), ciphertext_modulus,crs_lwe_codimension.0);
+/// let mut crs_lwe = CRSLweCiphertext::new(0u64, crs_lwe_dimension.to_crs_lwe_size(crs_lwe_codimension), ciphertext_modulus);
 ///println!("Hello");
 /// encrypt_crs_lwe_ciphertext(
 ///     &crs_lwe_secret_key,

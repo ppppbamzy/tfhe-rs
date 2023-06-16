@@ -29,19 +29,18 @@ impl<Scalar: UnsignedInteger, C: Container<Element = Scalar>> CRSGlweBody<C> {
     /// // DISCLAIMER: these toy example parameters are not guaranteed to be secure or yield correct
     /// // computations
     /// // Define parameters for CRSGlweBody creation
-    /// let crs_glwe_dimension =CRSGlweDimension(2);
+    /// let crs_glwe_codimension =CRSGlweCodimension(2);
     /// let polynomial_size = PolynomialSize(1024);
     /// let ciphertext_modulus = CiphertextModulus::new_native();
     ///
     /// let crs_glwe_body = CRSGlweBody::from_container(
-    ///     vec![0u64; crs_glwe_dimension.0 * polynomial_size.0],
+    ///     vec![0u64; crs_glwe_codimension.0 * polynomial_size.0],
     ///     polynomial_size,
     ///     ciphertext_modulus,
     /// );
     ///
-    /// assert_eq!(crs_glwe_body.crs_glwe_dimension(), crs_glwe_dimension);
-    /// assert_eq!(crs_glwe_mask.polynomial_size(), polynomial_size);
-    /// assert_eq!(crs_glwe_mask.ciphertext_modulus(), ciphertext_modulus);
+    /// assert_eq!(crs_glwe_body.crs_glwe_codimension(), crs_glwe_codimension);
+    /// assert_eq!(crs_glwe_body.ciphertext_modulus(), ciphertext_modulus);
     /// ```
     pub fn from_container(
         container: C,
@@ -65,7 +64,7 @@ impl<Scalar: UnsignedInteger, C: Container<Element = Scalar>> CRSGlweBody<C> {
     /// Return the [`CRSGlweCodimension`] of the [`CRSGlweBody`].
     ///
     /// See [`CRSGlweBody::from_container`] for usage.
-    pub fn crs_glwe_dimension(&self) -> CRSGlweCodimension {
+    pub fn crs_glwe_codimension(&self) -> CRSGlweCodimension {
         CRSGlweCodimension(self.data.container_len() / self.polynomial_size.0)
     }
 
@@ -370,7 +369,7 @@ impl<Scalar: UnsignedInteger, C: Container<Element = Scalar>> CRSGlweCiphertext<
     ///
     /// // Recreate a ciphertext using from_container
     /// let mut crs_glwe =
-    ///     CRSGlweCiphertext::from_container(underlying_container, polynomial_size, ciphertext_modulus);
+    ///     CRSGlweCiphertext::from_container(underlying_container, polynomial_size, ciphertext_modulus,crs_glwe_size.1);
     ///
     /// assert_eq!(crs_glwe.crs_glwe_size(), crs_glwe_size);
     /// assert_eq!(crs_glwe.polynomial_size(), polynomial_size);
@@ -590,13 +589,13 @@ impl<Scalar: UnsignedInteger> CRSGlweCiphertextOwned<Scalar> {
         crs_glwe_size: CRSGlweSize,
         polynomial_size: PolynomialSize,
         ciphertext_modulus: CiphertextModulus<Scalar>,
-        codi: usize,
+        
     ) -> CRSGlweCiphertextOwned<Scalar> {
         CRSGlweCiphertextOwned::from_container(
             vec![fill_with; crs_glwe_ciphertext_size(crs_glwe_size, polynomial_size)],
             polynomial_size,
             ciphertext_modulus,
-            codi,
+            crs_glwe_size.1,
         )
     }
 }
