@@ -440,11 +440,8 @@ impl<Scalar: UnsignedInteger, C: Container<Element = Scalar>> CRSGlweCiphertext<
 
     /// Return immutable views to the [`CRSGlweMask`] and [`CRSGlweBody`] of a [`CRSGlweCiphertext`].
     pub fn get_mask_and_body(&self) -> (CRSGlweMask<&[Scalar]>, CRSGlweBody<&[Scalar]>) {
-        let (mask, body) = self.data.as_ref().split_at(crs_glwe_ciphertext_mask_size(
-            self.crs_glwe_size().to_crs_glwe_dimension(),
-            self.polynomial_size,
-        ));
-
+        let index = (self.crs_glwe_size().to_crs_glwe_dimension().0)*self.polynomial_size.0;
+        let (mask,body) = self.data.as_ref().split_at(index);
         (
             CRSGlweMask::from_container(mask,self.polynomial_size, self.ciphertext_modulus),
             CRSGlweBody::from_container(body,self.polynomial_size, self.ciphertext_modulus),

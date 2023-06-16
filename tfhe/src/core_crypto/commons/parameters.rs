@@ -273,7 +273,7 @@ pub struct CRSGlweSize(pub usize,pub usize);
 impl CRSGlweSize {
     /// Return the associated [`GlweDimension`].
     pub fn to_crs_glwe_dimension(&self) -> CRSGlweDimension {
-        CRSGlweDimension(self.0 -self.1)
+        CRSGlweDimension(self.0 - self.1)
     }
     pub fn to_crs_glwe_codimension(&self) -> CRSGlweCodimension {
         CRSGlweCodimension(self.1)

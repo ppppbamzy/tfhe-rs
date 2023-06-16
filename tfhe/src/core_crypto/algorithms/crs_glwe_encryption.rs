@@ -114,7 +114,7 @@ pub fn fill_crs_glwe_mask_and_body_for_encryption_assign<KeyCont, BodyCont, Mask
 /// // Manually fill the body with the encoded message
 /// glwe.get_mut_body().as_mut().fill(encoded_msg);
 ///
-/// encrypt_glwe_ciphertext_assign(
+/// encrypt_crs_glwe_ciphertext_assign(
 ///     &glwe_secret_key,
 ///     &mut glwe,
 ///     glwe_modular_std_dev,
@@ -143,7 +143,7 @@ pub fn fill_crs_glwe_mask_and_body_for_encryption_assign<KeyCont, BodyCont, Mask
 /// // Check we recovered the original message for each plaintext we encrypted
 /// cleartext_list.iter().for_each(|&elt| assert_eq!(elt, msg));
 /// ```
-pub fn encrypt_glwe_ciphertext_assign<Scalar, KeyCont, OutputCont, Gen>(
+pub fn encrypt_crs_glwe_ciphertext_assign<Scalar, KeyCont, OutputCont, Gen>(
     glwe_secret_key: &GlweSecretKey<KeyCont>,
     output: &mut GlweCiphertext<OutputCont>,
     noise_parameters: impl DispersionParameter,

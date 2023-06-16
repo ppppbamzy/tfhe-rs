@@ -61,7 +61,7 @@ impl<Scalar, C: Container<Element = Scalar>> CRSGlweSecretKey<C> {
     /// let polynomial_size = PolynomialSize(1024);
     ///
     /// // Create a new CRSGlweSecretKey
-    /// let crs_glwe_secret_key = CRSGlweSecretKey::new_empty_key(0u64, glwe_dimension, polynomial_size);
+    /// let crs_glwe_secret_key = CRSGlweSecretKey::new_empty_key(0u64, crs_glwe_dimension,crs_glwe_codimension, polynomial_size);
     ///
     /// assert_eq!(crs_glwe_secret_key.crs_glwe_dimension(), crs_glwe_dimension);
     /// assert_eq!(crs_glwe_secret_key.polynomial_size(), polynomial_size);
@@ -72,13 +72,13 @@ impl<Scalar, C: Container<Element = Scalar>> CRSGlweSecretKey<C> {
     /// // Recreate a secret key using from_container
     /// let crs_glwe_secret_key = CRSGlweSecretKey::from_container(underlying_container, polynomial_size,crs_glwe_codimension.0);
     ///
-    /// assert_eq!(crs_glwe_secret_key.glwe_dimension(), crs_glwe_dimension);
+    /// assert_eq!(crs_glwe_secret_key.crs_glwe_dimension(), crs_glwe_dimension);
     /// assert_eq!(crs_glwe_secret_key.polynomial_size(), polynomial_size);
     /// ```
     pub fn from_container(container: C, polynomial_size: PolynomialSize, codim:usize) -> Self {
         assert!(
             container.container_len() > 0,
-            "Got an empty container to create a GlweSecretKey"
+            "Got an empty container to create a CRSGlweSecretKey"
         );
         assert!(
             container.container_len() % polynomial_size.0 == 0,
@@ -98,7 +98,7 @@ impl<Scalar, C: Container<Element = Scalar>> CRSGlweSecretKey<C> {
     ///
     /// See [`CRSGlweSecretKey::from_container`] for usage.
     pub fn crs_glwe_dimension(&self) -> CRSGlweDimension {
-        CRSGlweDimension(self.data.container_len() / self.polynomial_size.0)
+        CRSGlweDimension(self.data.container_len() / self.polynomial_size.0 / self.codimension)
     }
 
     /// Return the [`PolynomialSize`] of the [`CRSGlweSecretKey`].
@@ -167,7 +167,7 @@ where
     /// // DISCLAIMER: these toy example parameters are not guaranteed to be secure or yield correct
     /// // computations
     /// // Define parameters for CRSGlweSecretKey creation
-    /// let crs_glwe_size = CRSGlweSize(2,2);
+    /// let crs_glwe_size = CRSGlweSize(4,2);
     /// let polynomial_size = PolynomialSize(1024);
     ///
     /// // Create the PRNG
@@ -186,7 +186,7 @@ where
     /// // Check all coefficients are not zero as we just generated a new key
     /// // Note probability of this assert failing is (1/2)^polynomial_size or ~5.6 * 10^-309 for a
     /// // polynomial size of 1024.
-    /// assert!(glwe_secret_key.as_ref().iter().all(|&elt| elt == 0) == false);
+    /// assert!(crs_glwe_secret_key.as_ref().iter().all(|&elt| elt == 0) == false);
     /// ```
     pub fn generate_new_binary<Gen>(
         crs_glwe_dimension: CRSGlweDimension,

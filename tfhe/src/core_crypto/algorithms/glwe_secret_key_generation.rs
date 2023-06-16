@@ -104,7 +104,7 @@ where
 /// // DISCLAIMER: these toy example parameters are not guaranteed to be secure or yield correct
 /// // computations
 /// // Define parameters for GlweSecretKey creation
-/// let crs_glwe_size = CRSGlweSize(2,2);
+/// let crs_glwe_size = CRSGlweSize(4,2);
 /// let polynomial_size = PolynomialSize(1024);
 ///
 /// // Create the PRNG
