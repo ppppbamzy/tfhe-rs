@@ -120,6 +120,7 @@ pub fn fill_crs_glwe_mask_and_body_for_encryption_assign<KeyCont, BodyCont, Mask
 /// 
 /// let mut body_mut_list = crs_glwe.get_mut_body();
 /// let mut body_mut = body_mut_list.as_mut();
+/// // why not working? let mut body_mut = crs_glwe.get_mut_body().as_mut();
 /// body_mut.copy_from_slice(list);
 /// //body_mut.into_iter().zip(list).for_each(|(body,word)| {
 /// //    *body = (*body).wrapping_add(*word);
@@ -153,7 +154,7 @@ pub fn fill_crs_glwe_mask_and_body_for_encryption_assign<KeyCont, BodyCont, Mask
 ///
 /// // Check we recovered the original message for each plaintext we encrypted
 /// cleartext_list.iter().for_each(|&elt| println!("{}",elt) );
-/// panic!();
+/// //panic!();
 /// ```
 pub fn encrypt_crs_glwe_ciphertext_assign<Scalar, KeyCont, OutputCont, Gen>(
     crs_glwe_secret_key: &CRSGlweSecretKey<KeyCont>,
@@ -211,7 +212,7 @@ pub fn decrypt_crs_glwe_ciphertext<Scalar, KeyCont, InputCont, OutputCont>(
     InputCont: Container<Element = Scalar>,
     OutputCont: ContainerMut<Element = Scalar>,
 {
-    /*
+    //*
     assert!(
         output_plaintext_list.plaintext_count().0 == (input_crs_glwe_ciphertext.polynomial_size().0*input_crs_glwe_ciphertext.crs_glwe_size().1),
         "Mismatched output PlaintextCount {:?} and input PolynomialSize {:?}*{:?}",

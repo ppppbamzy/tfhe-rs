@@ -64,7 +64,7 @@ impl<Scalar, C: Container<Element = Scalar>> CRSLweSecretKey<C> {
     /// let underlying_container: Vec<u64> = crs_lwe_secret_key.into_container();
     ///
     /// // Recreate a secret key using from_container
-    /// let crs_lwe_secret_key = CRSLweSecretKey::from_container(underlying_container);
+    /// let crs_lwe_secret_key = CRSLweSecretKey::from_container(underlying_container,crs_lwe_codimension.0);
     ///
     /// assert_eq!(crs_lwe_secret_key.crs_lwe_dimension(), crs_lwe_dimension);
     /// ```
@@ -130,7 +130,7 @@ where
     /// // computations
     /// // Define parameters for CRSLweSecretKey creation
     /// let crs_lwe_dimension = CRSLweDimension(742);
-    ///
+    /// let crs_lwe_codimension = CRSLweCodimension(7);
     /// // Create the PRNG
     /// let mut seeder = new_seeder();
     /// let seeder = seeder.as_mut();
@@ -138,7 +138,7 @@ where
     ///     SecretRandomGenerator::<ActivatedRandomGenerator>::new(seeder.seed());
     ///
     /// let crs_lwe_secret_key: CRSLweSecretKeyOwned<u64> =
-    ///     CRSLweSecretKey::generate_new_binary(crs_lwe_dimension, &mut secret_generator);
+    ///     CRSLweSecretKey::generate_new_binary(crs_lwe_dimension,crs_lwe_codimension, &mut secret_generator);
     ///
     /// // Check all coefficients are not zero as we just generated a new key
     /// // Note probability of this assert failing is (1/2)^crs-lwe_dimension or ~4.3 * 10^-224 for a
