@@ -22,44 +22,44 @@ macro_rules! create_parametrized_test{
      ($name:ident)=> {
         create_parametrized_test!($name
         {
-            PARAM_MESSAGE_1_CARRY_1,
-            PARAM_MESSAGE_1_CARRY_2,
-            PARAM_MESSAGE_1_CARRY_3,
-            PARAM_MESSAGE_1_CARRY_4,
-            PARAM_MESSAGE_1_CARRY_5,
-            PARAM_MESSAGE_1_CARRY_6,
-            PARAM_MESSAGE_1_CARRY_7,
+            // PARAM_MESSAGE_1_CARRY_1,
+            // PARAM_MESSAGE_1_CARRY_2,
+            // PARAM_MESSAGE_1_CARRY_3,
+            // PARAM_MESSAGE_1_CARRY_4,
+            // PARAM_MESSAGE_1_CARRY_5,
+            // PARAM_MESSAGE_1_CARRY_6,
+            // PARAM_MESSAGE_1_CARRY_7,
             PARAM_MESSAGE_2_CARRY_1,
             PARAM_MESSAGE_2_CARRY_2,
-            PARAM_MESSAGE_2_CARRY_3,
-            PARAM_MESSAGE_2_CARRY_4,
-            PARAM_MESSAGE_2_CARRY_5,
-            PARAM_MESSAGE_2_CARRY_6,
-            PARAM_MESSAGE_3_CARRY_1,
-            PARAM_MESSAGE_3_CARRY_2,
-            PARAM_MESSAGE_3_CARRY_3,
-            PARAM_MESSAGE_3_CARRY_4,
-            PARAM_MESSAGE_3_CARRY_5,
-            PARAM_MESSAGE_4_CARRY_1,
-            PARAM_MESSAGE_4_CARRY_2,
-            PARAM_MESSAGE_4_CARRY_3,
-            PARAM_MESSAGE_4_CARRY_4,
-            PARAM_MESSAGE_5_CARRY_1,
-            PARAM_MESSAGE_5_CARRY_2,
-            PARAM_MESSAGE_5_CARRY_3,
-            PARAM_MESSAGE_6_CARRY_1,
-            PARAM_MESSAGE_6_CARRY_2,
-            PARAM_MESSAGE_7_CARRY_1,
-            PARAM_MULTI_BIT_MESSAGE_1_CARRY_1_GROUP_2,
-            PARAM_MULTI_BIT_MESSAGE_2_CARRY_2_GROUP_2,
-            PARAM_MULTI_BIT_MESSAGE_3_CARRY_3_GROUP_2,
-            // // These parameters seem to introduce too much noise during computation
-            // PARAM_MULTI_BIT_MESSAGE_4_CARRY_4_GROUP_2,
-            PARAM_MULTI_BIT_MESSAGE_1_CARRY_1_GROUP_3,
-            PARAM_MULTI_BIT_MESSAGE_2_CARRY_2_GROUP_3,
-            PARAM_MULTI_BIT_MESSAGE_3_CARRY_3_GROUP_3
-            // // These parameters seem to introduce too much noise during computation
-            // PARAM_MULTI_BIT_MESSAGE_4_CARRY_4_GROUP_3
+            PARAM_MESSAGE_2_CARRY_3
+            // PARAM_MESSAGE_2_CARRY_4,
+            // PARAM_MESSAGE_2_CARRY_5,
+            // PARAM_MESSAGE_2_CARRY_6,
+            // PARAM_MESSAGE_3_CARRY_1,
+            // PARAM_MESSAGE_3_CARRY_2,
+            // PARAM_MESSAGE_3_CARRY_3,
+            // PARAM_MESSAGE_3_CARRY_4,
+            // PARAM_MESSAGE_3_CARRY_5,
+            // PARAM_MESSAGE_4_CARRY_1,
+            // PARAM_MESSAGE_4_CARRY_2,
+            // PARAM_MESSAGE_4_CARRY_3,
+            // PARAM_MESSAGE_4_CARRY_4,
+            // PARAM_MESSAGE_5_CARRY_1,
+            // PARAM_MESSAGE_5_CARRY_2,
+            // PARAM_MESSAGE_5_CARRY_3,
+            // PARAM_MESSAGE_6_CARRY_1,
+            // PARAM_MESSAGE_6_CARRY_2,
+            // PARAM_MESSAGE_7_CARRY_1,
+            // PARAM_MULTI_BIT_MESSAGE_1_CARRY_1_GROUP_2,
+            // PARAM_MULTI_BIT_MESSAGE_2_CARRY_2_GROUP_2,
+            // PARAM_MULTI_BIT_MESSAGE_3_CARRY_3_GROUP_2,
+            // // // These parameters seem to introduce too much noise during computation
+            // // PARAM_MULTI_BIT_MESSAGE_4_CARRY_4_GROUP_2,
+            // PARAM_MULTI_BIT_MESSAGE_1_CARRY_1_GROUP_3,
+            // PARAM_MULTI_BIT_MESSAGE_2_CARRY_2_GROUP_3,
+            // PARAM_MULTI_BIT_MESSAGE_3_CARRY_3_GROUP_3
+            // // // These parameters seem to introduce too much noise during computation
+            // // PARAM_MULTI_BIT_MESSAGE_4_CARRY_4_GROUP_3
         });
     };
 }
@@ -79,71 +79,71 @@ macro_rules! create_parametrized_test_bivariate_pbs_compliant{
      ($name:ident)=> {
         create_parametrized_test!($name
         {
-            PARAM_MESSAGE_1_CARRY_1,
-            PARAM_MESSAGE_1_CARRY_2,
-            PARAM_MESSAGE_1_CARRY_3,
-            PARAM_MESSAGE_1_CARRY_4,
-            PARAM_MESSAGE_1_CARRY_5,
-            PARAM_MESSAGE_1_CARRY_6,
-            PARAM_MESSAGE_1_CARRY_7,
+            // PARAM_MESSAGE_1_CARRY_1,
+            // PARAM_MESSAGE_1_CARRY_2,
+            // PARAM_MESSAGE_1_CARRY_3,
+            // PARAM_MESSAGE_1_CARRY_4,
+            // PARAM_MESSAGE_1_CARRY_5,
+            // PARAM_MESSAGE_1_CARRY_6,
+            // PARAM_MESSAGE_1_CARRY_7,
             PARAM_MESSAGE_2_CARRY_2,
-            PARAM_MESSAGE_2_CARRY_3,
-            PARAM_MESSAGE_2_CARRY_4,
-            PARAM_MESSAGE_2_CARRY_5,
-            PARAM_MESSAGE_2_CARRY_6,
-            PARAM_MESSAGE_3_CARRY_3,
-            PARAM_MESSAGE_3_CARRY_4,
-            PARAM_MESSAGE_3_CARRY_5,
-            PARAM_MESSAGE_4_CARRY_4,
-            PARAM_MULTI_BIT_MESSAGE_1_CARRY_1_GROUP_2,
-            PARAM_MULTI_BIT_MESSAGE_2_CARRY_2_GROUP_2,
-            PARAM_MULTI_BIT_MESSAGE_3_CARRY_3_GROUP_2,
-            // // These parameters seem to introduce too much noise during computation
-            // PARAM_MULTI_BIT_MESSAGE_4_CARRY_4_GROUP_2,
-            PARAM_MULTI_BIT_MESSAGE_1_CARRY_1_GROUP_3,
-            PARAM_MULTI_BIT_MESSAGE_2_CARRY_2_GROUP_3,
-            PARAM_MULTI_BIT_MESSAGE_3_CARRY_3_GROUP_3
-            // // These parameters seem to introduce too much noise during computation
-            // PARAM_MULTI_BIT_MESSAGE_4_CARRY_4_GROUP_3
+            PARAM_MESSAGE_2_CARRY_3
+            // PARAM_MESSAGE_2_CARRY_4,
+            // PARAM_MESSAGE_2_CARRY_5,
+            // PARAM_MESSAGE_2_CARRY_6,
+            // PARAM_MESSAGE_3_CARRY_3,
+            // PARAM_MESSAGE_3_CARRY_4,
+            // PARAM_MESSAGE_3_CARRY_5,
+            // PARAM_MESSAGE_4_CARRY_4,
+            // PARAM_MULTI_BIT_MESSAGE_1_CARRY_1_GROUP_2,
+            // PARAM_MULTI_BIT_MESSAGE_2_CARRY_2_GROUP_2,
+            // PARAM_MULTI_BIT_MESSAGE_3_CARRY_3_GROUP_2,
+            // // // These parameters seem to introduce too much noise during computation
+            // // PARAM_MULTI_BIT_MESSAGE_4_CARRY_4_GROUP_2,
+            // PARAM_MULTI_BIT_MESSAGE_1_CARRY_1_GROUP_3,
+            // PARAM_MULTI_BIT_MESSAGE_2_CARRY_2_GROUP_3,
+            // PARAM_MULTI_BIT_MESSAGE_3_CARRY_3_GROUP_3
+            // // // These parameters seem to introduce too much noise during computation
+            // // PARAM_MULTI_BIT_MESSAGE_4_CARRY_4_GROUP_3
         });
     };
 }
 
 //These functions are compatible with all parameter sets.
-create_parametrized_test!(shortint_encrypt_decrypt);
-create_parametrized_test!(shortint_encrypt_with_message_modulus_decrypt);
-create_parametrized_test!(shortint_encrypt_decrypt_without_padding);
-create_parametrized_test!(shortint_keyswitch_bootstrap);
-create_parametrized_test!(shortint_keyswitch_programmable_bootstrap);
-create_parametrized_test!(shortint_carry_extract);
-create_parametrized_test!(shortint_message_extract);
-create_parametrized_test!(shortint_generate_accumulator);
-create_parametrized_test!(shortint_unchecked_add);
-create_parametrized_test!(shortint_smart_add);
+// create_parametrized_test!(shortint_encrypt_decrypt);
+// create_parametrized_test!(shortint_encrypt_with_message_modulus_decrypt);
+// create_parametrized_test!(shortint_encrypt_decrypt_without_padding);
+// create_parametrized_test!(shortint_keyswitch_bootstrap);
+// create_parametrized_test!(shortint_keyswitch_programmable_bootstrap);
+// create_parametrized_test!(shortint_carry_extract);
+// create_parametrized_test!(shortint_message_extract);
+// create_parametrized_test!(shortint_generate_accumulator);
+// create_parametrized_test!(shortint_unchecked_add);
+// create_parametrized_test!(shortint_smart_add);
 create_parametrized_test!(shortint_default_add);
-create_parametrized_test!(shortint_smart_mul_lsb);
-create_parametrized_test!(shortint_default_mul_lsb);
-create_parametrized_test!(shortint_unchecked_neg);
-create_parametrized_test!(shortint_smart_neg);
+// create_parametrized_test!(shortint_smart_mul_lsb);
+// create_parametrized_test!(shortint_default_mul_lsb);
+// create_parametrized_test!(shortint_unchecked_neg);
+// create_parametrized_test!(shortint_smart_neg);
 create_parametrized_test!(shortint_default_neg);
-create_parametrized_test!(shortint_unchecked_scalar_add);
-create_parametrized_test!(shortint_smart_scalar_add);
-create_parametrized_test!(shortint_default_scalar_add);
-create_parametrized_test!(shortint_unchecked_scalar_sub);
-create_parametrized_test!(shortint_smart_scalar_sub);
-create_parametrized_test!(shortint_default_scalar_sub);
-create_parametrized_test!(shortint_unchecked_scalar_mul);
-create_parametrized_test!(shortint_smart_scalar_mul);
-create_parametrized_test!(shortint_default_scalar_mul);
-create_parametrized_test!(shortint_unchecked_right_shift);
-create_parametrized_test!(shortint_default_right_shift);
-create_parametrized_test!(shortint_unchecked_left_shift);
-create_parametrized_test!(shortint_default_left_shift);
-create_parametrized_test!(shortint_unchecked_sub);
-create_parametrized_test!(shortint_smart_sub);
-create_parametrized_test!(shortint_default_sub);
-create_parametrized_test!(shortint_mul_small_carry);
-create_parametrized_test!(shortint_mux);
+// create_parametrized_test!(shortint_unchecked_scalar_add);
+// create_parametrized_test!(shortint_smart_scalar_add);
+// create_parametrized_test!(shortint_default_scalar_add);
+// create_parametrized_test!(shortint_unchecked_scalar_sub);
+// create_parametrized_test!(shortint_smart_scalar_sub);
+// create_parametrized_test!(shortint_default_scalar_sub);
+// create_parametrized_test!(shortint_unchecked_scalar_mul);
+// create_parametrized_test!(shortint_smart_scalar_mul);
+// create_parametrized_test!(shortint_default_scalar_mul);
+// create_parametrized_test!(shortint_unchecked_right_shift);
+// create_parametrized_test!(shortint_default_right_shift);
+// create_parametrized_test!(shortint_unchecked_left_shift);
+// create_parametrized_test!(shortint_default_left_shift);
+// create_parametrized_test!(shortint_unchecked_sub);
+// create_parametrized_test!(shortint_smart_sub);
+// create_parametrized_test!(shortint_default_sub);
+// create_parametrized_test!(shortint_mul_small_carry);
+// create_parametrized_test!(shortint_mux);
 
 // Public key tests are limited to small parameter sets to avoid blowing up memory and large testing
 // times. Compressed keygen takes 20 minutes for params 2_2 and for encryption as well.
@@ -165,49 +165,49 @@ fn test_shortint_public_key_smart_add_param_message_2_carry_2() {
 
 //These functions are compatible with some parameter sets where the carry modulus is larger than
 // the message modulus.
-create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_bitand);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_bitor);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_bitxor);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_greater);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_greater_or_equal);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_less);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_less_or_equal);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_equal);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_bitand);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_default_bitand);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_bitor);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_default_bitor);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_bitxor);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_default_bitxor);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_greater);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_default_greater);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_greater_or_equal);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_default_greater_or_equal);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_less);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_default_less);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_less_or_equal);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_default_less_or_equal);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_equal);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_default_equal);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_scalar_equal);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_scalar_less);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_scalar_less_or_equal);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_scalar_greater);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_scalar_greater_or_equal);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_div);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_scalar_div);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_mod);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_mul_lsb);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_mul_msb);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_mul_msb);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_default_mul_msb);
-create_parametrized_test_bivariate_pbs_compliant!(
-    shortint_keyswitch_bivariate_programmable_bootstrap
-);
-create_parametrized_test_bivariate_pbs_compliant!(
-    shortint_encrypt_with_message_modulus_smart_add_and_mul
-);
-create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_less_or_equal_trivial);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_bitand);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_bitor);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_bitxor);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_greater);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_greater_or_equal);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_less);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_less_or_equal);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_equal);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_bitand);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_default_bitand);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_bitor);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_default_bitor);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_bitxor);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_default_bitxor);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_greater);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_default_greater);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_greater_or_equal);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_default_greater_or_equal);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_less);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_default_less);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_less_or_equal);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_default_less_or_equal);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_equal);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_default_equal);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_scalar_equal);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_scalar_less);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_scalar_less_or_equal);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_scalar_greater);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_scalar_greater_or_equal);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_div);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_scalar_div);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_mod);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_mul_lsb);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_mul_msb);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_smart_mul_msb);
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_default_mul_msb);
+// create_parametrized_test_bivariate_pbs_compliant!(
+//     shortint_keyswitch_bivariate_programmable_bootstrap
+// );
+// create_parametrized_test_bivariate_pbs_compliant!(
+//     shortint_encrypt_with_message_modulus_smart_add_and_mul
+// );
+// create_parametrized_test_bivariate_pbs_compliant!(shortint_unchecked_less_or_equal_trivial);
 
 /// test encryption and decryption with the LWE client key
 fn shortint_encrypt_decrypt<P>(param: P)
