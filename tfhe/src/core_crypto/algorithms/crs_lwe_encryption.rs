@@ -152,7 +152,7 @@ pub fn fill_crs_lwe_mask_and_body_for_encryption<Scalar, KeyCont, InputCont, Out
 ///
 /// // Check we recovered the original message for each plaintext we encrypted
 /// cleartext_list.iter().for_each(|&elt| println!("{}",elt) );
-/// cleartext_list.iter().for_each(|&elt| assert_eq!(elt, msg,"different messages"));
+/// panic!();
 ///
 ///
 /// ```
