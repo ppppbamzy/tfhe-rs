@@ -123,7 +123,7 @@ pub fn fill_crs_lwe_mask_and_body_for_encryption<Scalar, KeyCont, InputCont, Out
 /// 
 /// 
 /// // Create a new CRSLweCiphertext
-/// let mut crs_lwe = CRSLweCiphertext::new(0u64, crs_lwe_dimension.to_crs_lwe_size(crs_lwe_codimension), ciphertext_modulus);
+///let mut crs_lwe = CRSLweCiphertext::new(0u64, crs_lwe_dimension.to_crs_lwe_size(crs_lwe_codimension), ciphertext_modulus);
 ///println!("Hello");
 /// encrypt_crs_lwe_ciphertext(
 ///     &crs_lwe_secret_key,
@@ -137,7 +137,7 @@ pub fn fill_crs_lwe_mask_and_body_for_encryption<Scalar, KeyCont, InputCont, Out
 ///
 /// // Round and remove encoding
 /// // First create a decomposer working on the high 4 bits corresponding to our encoding.
-/// let decomposer = SignedDecomposer::new(DecompositionBaseLog(4), DecompositionLevelCount(1));
+/// let decomposer = SignedDecomposer::new(DecompositionBaseLog(64-delta), DecompositionLevelCount(1));
 /// 
 /// decrypted_plaintext
 ///     .iter_mut()
@@ -157,12 +157,6 @@ pub fn fill_crs_lwe_mask_and_body_for_encryption<Scalar, KeyCont, InputCont, Out
 ///
 /// ```
  
-
-
-
-
-
-
 
 pub fn encrypt_crs_lwe_ciphertext<Scalar, KeyCont, OutputCont,InputCont, Gen>(
     crs_lwe_secret_key: &CRSLweSecretKey<KeyCont>,

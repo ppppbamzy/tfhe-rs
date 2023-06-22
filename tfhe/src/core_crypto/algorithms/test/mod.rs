@@ -10,6 +10,7 @@ mod lwe_keyswitch_key_generation;
 mod lwe_linear_algebra;
 mod lwe_multi_bit_programmable_bootstrapping;
 mod lwe_programmable_bootstrapping;
+mod crs_lwe_modulo_switch;
 
 pub struct TestResources {
     pub seeder: Box<dyn Seeder>,

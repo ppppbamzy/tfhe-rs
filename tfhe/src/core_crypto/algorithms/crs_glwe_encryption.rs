@@ -122,6 +122,7 @@ pub fn fill_crs_glwe_mask_and_body_for_encryption_assign<KeyCont, BodyCont, Mask
 /// let mut body_mut = body_mut_list.as_mut();
 /// // why not working? let mut body_mut = crs_glwe.get_mut_body().as_mut();
 /// body_mut.copy_from_slice(list);
+/// //other version
 /// //body_mut.into_iter().zip(list).for_each(|(body,word)| {
 /// //    *body = (*body).wrapping_add(*word);
 /// //} );
@@ -141,9 +142,7 @@ pub fn fill_crs_glwe_mask_and_body_for_encryption_assign<KeyCont, BodyCont, Mask
 /// // First create a decomposer working on the high X bits corresponding to our encoding.
 /// let decomposer = SignedDecomposer::new(DecompositionBaseLog((64-delta) as usize), DecompositionLevelCount(1));
 ///
-/// output_plaintext_list
-///     .iter_mut()
-///     .for_each(|elt| *elt.0 = decomposer.closest_representable(*elt.0));
+/// output_plaintext_list.iter_mut().for_each(|elt| *elt.0 = decomposer.closest_representable(*elt.0));
 ///
 /// // Get the raw vector
 /// let mut cleartext_list = output_plaintext_list.into_container();
