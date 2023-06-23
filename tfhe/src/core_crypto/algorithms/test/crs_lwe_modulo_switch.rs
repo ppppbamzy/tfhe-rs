@@ -15,7 +15,7 @@ use crate::core_crypto::prelude::slice_algorithms::slice_wrapping_dot_product;
 fn integer_round(lwe: u64, log_poly_size: u64, ciphertext_modulus_log: usize) -> u64 {
     let mut res = lwe;
     // Start doing the right shift
-    res >>= ciphertext_modulus_log - log_poly_size as usize - 2_usize;
+    res >>= ciphertext_modulus_log - log_poly_size as usize - 1_usize;
     // Do the rounding
     res += res & 1_u64;
     // Finish the right shift
@@ -134,7 +134,8 @@ fn test_covariance(dimension:usize)->f64{
 
     let crs_lwe_dimension = CRSLweDimension(dimension);
     let crs_lwe_codimension = CRSLweCodimension(2);
-    let crs_lwe_modular_std_dev = StandardDev(0.000007069849454709433);
+    let crs_lwe_modular_std_dev = StandardDev(0.0);
+    //let crs_lwe_modular_std_dev = StandardDev(0.000007069849454709433);
     //let crs_lwe_modular_std_dev = StandardDev(0.7069849454709433);
     let ciphertext_modulus = CiphertextModulus::new_native();
 
@@ -154,14 +155,14 @@ fn test_covariance(dimension:usize)->f64{
     let mut plaintext_list = PlaintextList::new(msg, PlaintextCount(crs_lwe_codimension.0));
     let list = plaintext_list.as_mut();//question a arthur pourquoi je ne dois pas declarer let mut list
     for (i, el) in list.iter_mut().enumerate(){
-    *el=(*el).wrapping_add((i as u64)<<delta);
+        *el=(*el).wrapping_add((i as u64)<<delta);
     }
     // Create a CRSLweCiphertext list
     let number:usize= 10000;
     let mut ciph_list =vec![CRSLweCiphertext::new(0u64, crs_lwe_dimension.to_crs_lwe_size(crs_lwe_codimension), ciphertext_modulus);number];
     //0..number.map(|_|).collect())
     let old_mod:usize = 64;
-    let new_mod:usize = 32;
+    let new_mod:usize = 15;
     for i in 0..number{
         //generate the secret key for each cipher
         let crs_lwe_secret_key =
@@ -198,36 +199,42 @@ fn test_covariance(dimension:usize)->f64{
     let mut var_y=0.0;
     let mut sigma_x=0.0;
     let mut sigma_y=0.0;
+    let decal = old_mod-new_mod;
     for i in 0..number{
         let body_ref=ciph_list[i].get_body();
-        esp_x+= (body_ref.data[0]>>new_mod) as f64;
-        esp_y+= (body_ref.data[1]>>new_mod) as f64;
+        esp_x+= (body_ref.data[0]>>decal) as f64;
+        esp_y+= (body_ref.data[1]>>decal) as f64;
     }
     esp_x /= number as f64;
     esp_y /= number as f64;
     for i in 0..number{
         let body_ref=ciph_list[i].get_body();
-        cov_xy+= ((body_ref.data[0]>>new_mod) as f64 -esp_x)*((body_ref.data[1]>>new_mod) as f64 -esp_y);
-        var_x+= ((body_ref.data[0]>>new_mod) as f64 -esp_x)*((body_ref.data[0]>>new_mod) as f64 -esp_x);
-        var_y+= ((body_ref.data[1]>>new_mod) as f64 -esp_y)*((body_ref.data[1]>>new_mod) as f64 -esp_y);
+        cov_xy+= ((body_ref.data[0]>>decal) as f64 -esp_x)*((body_ref.data[1]>>decal) as f64 -esp_y);
+        var_x+= ((body_ref.data[0]>>decal) as f64 -esp_x)*((body_ref.data[0]>>decal) as f64 -esp_x);
+        var_y+= ((body_ref.data[1]>>decal) as f64 -esp_y)*((body_ref.data[1]>>decal) as f64 -esp_y);
     }
     cov_xy/=number as f64;
+    var_x/=number as f64;
+    var_y/=number as f64;
+    
     sigma_x=var_x.sqrt();
     sigma_y=var_y.sqrt();
     let cor_xy=cov_xy/(sigma_x*sigma_y);
     return cor_xy;   
 }
 
+/* 
 #[test]
 fn testy(){
     test_compare();
     panic!();
 }
+// */
 #[test]
 fn test_cov(){
-    for i in 1..743{
-        let cov = test_covariance(i);
-        println!("{}",cov);    
+    for i in 700..750{
+        let corr = test_covariance(i);
+        println!("{}",corr);    
     }
     panic!();
 }
