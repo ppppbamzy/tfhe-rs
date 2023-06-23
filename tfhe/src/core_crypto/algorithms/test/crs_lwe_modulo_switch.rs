@@ -130,9 +130,9 @@ fn test_compare(){
 }
 
 
-fn test_covariance()->f64{
+fn test_covariance(dimension:usize)->f64{
 
-    let crs_lwe_dimension = CRSLweDimension(742);
+    let crs_lwe_dimension = CRSLweDimension(dimension);
     let crs_lwe_codimension = CRSLweCodimension(2);
     let crs_lwe_modular_std_dev = StandardDev(0.000007069849454709433);
     //let crs_lwe_modular_std_dev = StandardDev(0.7069849454709433);
@@ -194,6 +194,10 @@ fn test_covariance()->f64{
     let mut esp_x=0.0;
     let mut esp_y=0.0;
     let mut cov_xy=0.0;
+    let mut var_x=0.0;
+    let mut var_y=0.0;
+    let mut sigma_x=0.0;
+    let mut sigma_y=0.0;
     for i in 0..number{
         let body_ref=ciph_list[i].get_body();
         esp_x+= (body_ref.data[0]>>new_mod) as f64;
@@ -204,9 +208,14 @@ fn test_covariance()->f64{
     for i in 0..number{
         let body_ref=ciph_list[i].get_body();
         cov_xy+= ((body_ref.data[0]>>new_mod) as f64 -esp_x)*((body_ref.data[1]>>new_mod) as f64 -esp_y);
+        var_x+= ((body_ref.data[0]>>new_mod) as f64 -esp_x)*((body_ref.data[0]>>new_mod) as f64 -esp_x);
+        var_y+= ((body_ref.data[1]>>new_mod) as f64 -esp_y)*((body_ref.data[1]>>new_mod) as f64 -esp_y);
     }
     cov_xy/=number as f64;
-    return cov_xy;   
+    sigma_x=var_x.sqrt();
+    sigma_y=var_y.sqrt();
+    let cor_xy=cov_xy/(sigma_x*sigma_y);
+    return cor_xy;   
 }
 
 #[test]
@@ -216,6 +225,9 @@ fn testy(){
 }
 #[test]
 fn test_cov(){
-    test_covariance();
+    for i in 1..743{
+        let cov = test_covariance(i);
+        println!("{}",cov);    
+    }
     panic!();
 }
