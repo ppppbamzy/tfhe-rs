@@ -1,5 +1,8 @@
 # Security and Cryptography
 
+//TODO: add a section dedicated to the PBS
+
+
 ## TFHE
 
 TFHE-rs is a cryptographic library dedicated to Fully Homomorphic Encryption. As its name suggests, it is based on the TFHE scheme.
@@ -88,6 +91,6 @@ By default, the cryptographic parameters provided by `TFHE-rs` ensure at least 1
 
 For all sets of parameters, the error probability when computing a univariate function over one ciphertext is $$2^{-40}$$. Note that univariate functions might be performed when arithmetic functions are computed (i.e., the multiplication of two ciphertexts).
 
-### Public key encryption.
+### Classical Public key encryption.
 
-In public key encryption, the public key contains a given number of ciphertexts all encrypting the value 0. By setting the number of encryptions to 0 in the public key at $$m = \lceil (n+1) \log(q) \rceil + \lambda$$, where $$n$$ is the LWE dimension, $$q$$ is the ciphertext modulus, and $$\lambda$$ is the number of security bits. This construction is secure due to the leftover hash lemma, which relates to the impossibility of breaking the underlying multiple subset sum problem. This guarantees both a high-density subset sum and an exponentially large number of possible associated random vectors per LWE sample (a,b).
+In classical public key encryption, the public key contains a given number of ciphertexts all encrypting the value 0. By setting the number of encryptions to 0 in the public key at $$m = \lceil (n+1) \log(q) \rceil + \lambda$$, where $$n$$ is the LWE dimension, $$q$$ is the ciphertext modulus, and $$\lambda$$ is the number of security bits. This construction is secure due to the leftover hash lemma, which relates to the impossibility of breaking the underlying multiple subset sum problem. This guarantees both a high-density subset sum and an exponentially large number of possible associated random vectors per LWE sample (a,b).

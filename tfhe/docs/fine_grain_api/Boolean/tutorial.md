@@ -1,5 +1,7 @@
 # Tutorial
 
+<!-- TODO: Add a small introduction to Booleans -->
+
 This library is meant to be used both on the **server side** and the **client side**. The typical use case should follow the subsequent steps:
 
 1. On the **client side**, generate the `client` and `server keys`.

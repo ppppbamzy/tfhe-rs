@@ -1,3 +1,6 @@
+<!-- TODO: Add a small introduction to Booleans -->
+
+
 # Tutorial
 
 The steps to homomorphically evaluate an integer circuit are described here.
