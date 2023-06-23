@@ -9,11 +9,7 @@ use concrete_csprng::seeders::Seed;
 use crate::core_crypto::commons::math::random::RandomGenerator;
 use crate::core_crypto::prelude::*;
 use crate::core_crypto::prelude::slice_algorithms::slice_wrapping_dot_product;
-//use crate::core_crypto::prelude::EncryptionRandomGenerator;
-//use crate::core_crypto::prelude::SecretRandomGenerator;
-//use crate::core_crypto::prelude::SignedDecomposer;
-//use crate::core_crypto::prelude::DecompositionBaseLog;
-//use crate::core_crypto::prelude::DecompositionLevelCount;
+
   
 
 fn integer_round(lwe: u64, log_poly_size: u64, ciphertext_modulus_log: usize) -> u64 {
@@ -134,7 +130,7 @@ fn test_compare(){
 }
 
 
-fn test_covariance(){
+fn test_covariance()->f64{
 
     let crs_lwe_dimension = CRSLweDimension(742);
     let crs_lwe_codimension = CRSLweCodimension(2);
@@ -192,13 +188,25 @@ fn test_covariance(){
             &crs_lwe_secret_key,
             &mut ciph_list[i],
             &plaintext_list,
-        )
+        );    
           
     }
-    
-    
-    
-
+    let mut esp_x=0.0;
+    let mut esp_y=0.0;
+    let mut cov_xy=0.0;
+    for i in 0..number{
+        let body_ref=ciph_list[i].get_body();
+        esp_x+= (body_ref.data[0]>>new_mod) as f64;
+        esp_y+= (body_ref.data[1]>>new_mod) as f64;
+    }
+    esp_x /= number as f64;
+    esp_y /= number as f64;
+    for i in 0..number{
+        let body_ref=ciph_list[i].get_body();
+        cov_xy+= ((body_ref.data[0]>>new_mod) as f64 -esp_x)*((body_ref.data[1]>>new_mod) as f64 -esp_y);
+    }
+    cov_xy/=number as f64;
+    return cov_xy;   
 }
 
 #[test]
