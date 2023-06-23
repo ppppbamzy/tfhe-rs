@@ -8,6 +8,7 @@ use concrete_csprng::generators::SoftwareRandomGenerator;
 use concrete_csprng::seeders::Seed;
 use crate::core_crypto::commons::math::random::RandomGenerator;
 use crate::core_crypto::prelude::*;
+use crate::core_crypto::prelude::slice_algorithms::slice_wrapping_dot_product;
 //use crate::core_crypto::prelude::EncryptionRandomGenerator;
 //use crate::core_crypto::prelude::SecretRandomGenerator;
 //use crate::core_crypto::prelude::SignedDecomposer;
@@ -33,6 +34,83 @@ fn print_binary(number: u64){
     }
     println!();     
 }
+
+fn change_modulus_ciphertext<Scalar, InputCont>(
+    crs_lwe_ciphertext: &mut CRSLweCiphertext<InputCont>,
+    old_modulus_log: usize,
+    new_modulus_log: usize, 
+)where   
+Scalar: UnsignedInteger,
+InputCont: ContainerMut<Element = Scalar>,
+{
+    let decomposer:SignedDecomposer<Scalar> = SignedDecomposer::new(DecompositionBaseLog(64-old_modulus_log+new_modulus_log), DecompositionLevelCount(1));
+    let  (mut mask, mut body) = crs_lwe_ciphertext.get_mut_mask_and_body();
+    let mask_mut=mask.as_mut();
+    let body_mut = body.as_mut();
+    mask_mut.iter_mut().for_each(|elt| *elt = decomposer.closest_representable(*elt));
+    body_mut.iter_mut().for_each(|elt| *elt = decomposer.closest_representable(*elt));
+    crs_lwe_ciphertext.set_ciphertext_modulus(new_modulus_log);//maybe useless
+}
+
+fn change_modulus_plaintext<Scalar>(
+    plaintext_list : & mut PlaintextList<Vec<Scalar>>,
+    old_modulus_log: usize,
+    new_modulus_log: usize, 
+)where   
+Scalar: UnsignedInteger,
+{
+    let decomposer:SignedDecomposer<Scalar> = SignedDecomposer::new(DecompositionBaseLog(64-old_modulus_log+new_modulus_log), DecompositionLevelCount(1));
+    let text_mut = plaintext_list.as_mut();
+    text_mut.iter_mut().for_each(|elt| *elt = decomposer.closest_representable(*elt));
+}
+
+
+fn remove_text_and_mask<Scalar, KeyCont, InputCont>(
+    crs_lwe_secret_key: &CRSLweSecretKey<KeyCont>,
+    crs_lwe_ciphertext: &mut CRSLweCiphertext<InputCont>,
+    plaintext_list : &PlaintextList<Vec<Scalar>>,
+)
+where   
+    Scalar: UnsignedInteger,
+    KeyCont: Container<Element = Scalar>,
+    InputCont: ContainerMut<Element = Scalar>,
+
+{
+    /* 
+    assert!(
+        crs_lwe_ciphertext.crs_lwe_size().to_crs_lwe_dimension() == crs_lwe_secret_key.crs_lwe_dimension(),
+        "Mismatch between LweDimension of output ciphertext and input secret key. \
+        Got {:?} in output, and {:?} in secret key.",
+        crs_lwe_ciphertext.crs_lwe_size().to_crs_lwe_dimension(),
+        crs_lwe_secret_key.crs_lwe_dimension()
+    );
+    // */
+    
+    //let ciphertext_modulus = crs_lwe_ciphertext.ciphertext_modulus();
+
+    
+    let key_ref = crs_lwe_secret_key.as_ref();
+    //let cipher = crs_lwe_ciphertext;
+    let keys = key_ref.split_into(crs_lwe_ciphertext.crs_lwe_size().1 );
+    
+    let (mask, mut body)= crs_lwe_ciphertext.get_mut_mask_and_body();
+    let bodies_mut = body.as_mut();
+    let mask_ref =mask.as_ref();
+        
+    let text_list = plaintext_list.as_ref();
+    // Subtract the message in the list
+    bodies_mut.iter_mut().zip(text_list).for_each(|(bod,text)| *bod =(*bod).wrapping_sub(*text));
+    
+    // Subtract the mask times the key
+
+    bodies_mut.iter_mut().zip(keys).for_each(|(body, key_chunk)| *body = (*body).wrapping_sub(slice_wrapping_dot_product(
+            mask_ref,
+            key_chunk,
+        )) );    
+}
+
+
+
 
 fn test_compare(){
     let mut generator = RandomGenerator::<SoftwareRandomGenerator>::new(Seed(0));
@@ -84,27 +162,49 @@ fn test_covariance(){
     }
     // Create a CRSLweCiphertext list
     let number:usize= 10000;
-    let mut cyph_list =vec![CRSLweCiphertext::new(0u64, crs_lwe_dimension.to_crs_lwe_size(crs_lwe_codimension), ciphertext_modulus);number];
+    let mut ciph_list =vec![CRSLweCiphertext::new(0u64, crs_lwe_dimension.to_crs_lwe_size(crs_lwe_codimension), ciphertext_modulus);number];
     //0..number.map(|_|).collect())
+    let old_mod:usize = 64;
+    let new_mod:usize = 32;
     for i in 0..number{
         //generate the secret key for each cipher
         let crs_lwe_secret_key =
             allocate_and_generate_new_binary_crs_lwe_secret_key(crs_lwe_dimension,crs_lwe_codimension, &mut secret_generator);
         encrypt_crs_lwe_ciphertext(
             &crs_lwe_secret_key,
-            &mut cyph_list[i],
+            &mut ciph_list[i],
             plaintext_list.clone(),
             crs_lwe_modular_std_dev,
             &mut encryption_generator,
-        );    
+        );
+          
+        change_modulus_ciphertext(
+            &mut ciph_list[i],
+            old_mod,
+            new_mod, 
+        );
+        change_modulus_plaintext(
+            & mut plaintext_list ,
+            old_mod,
+            new_mod, 
+        );
+        remove_text_and_mask(
+            &crs_lwe_secret_key,
+            &mut ciph_list[i],
+            &plaintext_list,
+        )
+          
     }
+    
+    
+    
 
 }
 
 #[test]
 fn testy(){
     test_compare();
-    //panic!();
+    panic!();
 }
 #[test]
 fn test_cov(){

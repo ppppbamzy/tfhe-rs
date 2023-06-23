@@ -131,6 +131,10 @@ impl<Scalar: UnsignedInteger, C: Container<Element = Scalar> > CRSLweMask<C> {
     pub fn ciphertext_modulus(&self) -> CiphertextModulus<C::Element> {
         self.ciphertext_modulus
     }
+    pub fn set_ciphertext_modulus(& mut self, value:usize) {
+        let new_module = CiphertextModulus::try_new_power_of_2(value);
+        self.ciphertext_modulus = new_module.unwrap();
+    }
     pub fn into_container(self) -> C {
         self.data
     }
@@ -346,6 +350,10 @@ impl<Scalar: UnsignedInteger, C: Container<Element = Scalar>> CRSLweCiphertext<C
     /// See [`CRSLweCiphertext::from_container`] for usage.
     pub fn ciphertext_modulus(&self) -> CiphertextModulus<C::Element> {
         self.ciphertext_modulus
+    }
+    pub fn set_ciphertext_modulus(& mut self, value:usize) {
+        let new_module = CiphertextModulus::try_new_power_of_2(value);
+        self.ciphertext_modulus = new_module.unwrap();
     }
 }
 
