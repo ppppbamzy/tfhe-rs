@@ -97,7 +97,7 @@ where
     // Subtract the message in the list
     bodies_mut.iter_mut().zip(text_list).for_each(|(bod,text)| *bod =(*bod).wrapping_sub(*text));
     
-    // Subtract the mask times the key
+    // Subtract the mask x key
 
     bodies_mut.iter_mut().zip(keys).for_each(|(body, key_chunk)| *body = (*body).wrapping_sub(slice_wrapping_dot_product(
             mask_ref,
@@ -130,11 +130,12 @@ fn test_compare(){
 }
 
 
-fn test_covariance(dimension:usize)->f64{
+fn test_covariance(dimension:usize,error: f64)->(f64,f64,f64,f64,f64,f64){
 
     let crs_lwe_dimension = CRSLweDimension(dimension);
     let crs_lwe_codimension = CRSLweCodimension(2);
-    let crs_lwe_modular_std_dev = StandardDev(0.0);
+    let crs_lwe_modular_std_dev = StandardDev(error);
+    //let crs_lwe_modular_std_dev = StandardDev(0.0);
     //let crs_lwe_modular_std_dev = StandardDev(0.000007069849454709433);
     //let crs_lwe_modular_std_dev = StandardDev(0.7069849454709433);
     let ciphertext_modulus = CiphertextModulus::new_native();
@@ -158,11 +159,11 @@ fn test_covariance(dimension:usize)->f64{
         *el=(*el).wrapping_add((i as u64)<<delta);
     }
     // Create a CRSLweCiphertext list
-    let number:usize= 10000;
+    let number:usize= 1000;
     let mut ciph_list =vec![CRSLweCiphertext::new(0u64, crs_lwe_dimension.to_crs_lwe_size(crs_lwe_codimension), ciphertext_modulus);number];
     //0..number.map(|_|).collect())
     let old_mod:usize = 64;
-    let new_mod:usize = 15;
+    let new_mod:usize = 32;
     for i in 0..number{
         //generate the secret key for each cipher
         let crs_lwe_secret_key =
@@ -174,17 +175,20 @@ fn test_covariance(dimension:usize)->f64{
             crs_lwe_modular_std_dev,
             &mut encryption_generator,
         );
-          
+         
         change_modulus_ciphertext(
             &mut ciph_list[i],
             old_mod,
             new_mod, 
         );
+        //useless 
+        /* 
         change_modulus_plaintext(
             & mut plaintext_list ,
             old_mod,
             new_mod, 
         );
+        // */
         remove_text_and_mask(
             &crs_lwe_secret_key,
             &mut ciph_list[i],
@@ -200,6 +204,8 @@ fn test_covariance(dimension:usize)->f64{
     let mut sigma_x=0.0;
     let mut sigma_y=0.0;
     let decal = old_mod-new_mod;
+    
+    /* 
     for i in 0..number{
         let body_ref=ciph_list[i].get_body();
         esp_x+= (body_ref.data[0]>>decal) as f64;
@@ -213,28 +219,77 @@ fn test_covariance(dimension:usize)->f64{
         var_x+= ((body_ref.data[0]>>decal) as f64 -esp_x)*((body_ref.data[0]>>decal) as f64 -esp_x);
         var_y+= ((body_ref.data[1]>>decal) as f64 -esp_y)*((body_ref.data[1]>>decal) as f64 -esp_y);
     }
-    cov_xy/=number as f64;
-    var_x/=number as f64;
-    var_y/=number as f64;
+    cov_xy/=(number as f64-1.0);
+    var_x/=(number as f64-1.0);
+    var_y/=(number as f64-1.0);
     
     sigma_x=var_x.sqrt();
     sigma_y=var_y.sqrt();
     let cor_xy=cov_xy/(sigma_x*sigma_y);
-    return cor_xy;   
+    return (cov_xy,cor_xy,sigma_x,sigma_y,var_x,var_y);
+    // */
+    
+    
+    //Calculation of the expectation
+    for i in 0..number{
+        let body_ref=ciph_list[i].get_body();
+        esp_x+= body_ref.data[0] as f64;
+        //esp_x+= ((*(body_ref[0]))>>decal) as f64;
+        esp_y+= body_ref.data[1] as f64;
+    }
+    esp_x=((esp_x as i64)>>decal) as f64;
+    esp_y=((esp_y as i64)>>decal) as f64;
+    esp_x /= number as f64;
+    esp_y /= number as f64;
+    
+    //Calculation of the covariance, variances and standard deviation
+    for i in 0..number{
+        let body_ref=ciph_list[i].get_body();
+        cov_xy+= ((body_ref.data[0]>>decal) as f64 -esp_x)*((body_ref.data[1]>>decal) as f64 -esp_y);
+        var_x+= ((body_ref.data[0]>>decal) as f64 -esp_x)*((body_ref.data[0]>>decal) as f64 -esp_x);
+        var_y+= ((body_ref.data[1]>>decal) as f64 -esp_y)*((body_ref.data[1]>>decal) as f64 -esp_y);
+    }
+    cov_xy/=(number as f64-1.0);
+    var_x/=(number as f64-1.0);
+    var_y/=(number as f64-1.0);
+    sigma_x=var_x.sqrt();
+    sigma_y=var_y.sqrt();
+    
+    //correlation coefficient
+    
+    let cor_xy=cov_xy/(sigma_x*sigma_y);
+    return (cov_xy,cor_xy,sigma_x,sigma_y,var_x,var_y);
+       
 }
 
 /* 
 #[test]
 fn testy(){
     test_compare();
+    
     panic!();
 }
 // */
 #[test]
 fn test_cov(){
-    for i in 700..750{
-        let corr = test_covariance(i);
-        println!("{}",corr);    
+    
+    for j in 20..=64{
+        //let error = 1.0/((1<<j) as f64);
+        let error = 2.0.powi(-(j as i32));
+        //let error = 0.0;
+       
+        println!("Error: {}",error);
+        println!("j: {}",j);
+        println!();
+        for i in 700..710{
+            let (cov,corr, sigma_x, sigma_y, var_x, var_y) = test_covariance(i,error);
+            //println!("cov: {}",cov);
+            println!("corr: {}",corr);
+            //println!("sigma_x: {}",sigma_x);
+            //println!("sigma_y: {}",sigma_y);
+            //println!("var_x: {}",var_x);
+            //println!("var_y: {}",var_y);
+        }    
     }
     panic!();
 }
