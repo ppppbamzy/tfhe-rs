@@ -130,7 +130,7 @@ fn test_compare(){
 }
 
 
-fn test_covariance(dimension:usize,error: f64)->(f64,f64,f64,f64,f64,f64){
+fn test_covariance(dimension:usize,error: f64)->(f64,f64,f64,f64,f64,f64,f64){
 
     let crs_lwe_dimension = CRSLweDimension(dimension);
     let crs_lwe_codimension = CRSLweCodimension(2);
@@ -258,7 +258,9 @@ fn test_covariance(dimension:usize,error: f64)->(f64,f64,f64,f64,f64,f64){
     //correlation coefficient
     
     let cor_xy=cov_xy/(sigma_x*sigma_y);
-    return (cov_xy,cor_xy,sigma_x,sigma_y,var_x,var_y);
+    let ratio = 2.0.powi(-2*(decal as i32));
+    let expected = (dimension as f64)*(1.0-ratio)/(48.0*ratio*(error)*(error)+4.0-4.0*ratio+(dimension as f64)*(2.0+ratio));
+    return (cov_xy,cor_xy,sigma_x,sigma_y,var_x,var_y,expected);
        
 }
 
@@ -273,7 +275,7 @@ fn testy(){
 #[test]
 fn test_cov(){
     
-    for j in 20..=64{
+    for j in 10..=64{
         //let error = 1.0/((1<<j) as f64);
         let error = 2.0.powi(-(j as i32));
         //let error = 0.0;
@@ -281,10 +283,11 @@ fn test_cov(){
         println!("Error: {}",error);
         println!("j: {}",j);
         println!();
-        for i in 700..710{
-            let (cov,corr, sigma_x, sigma_y, var_x, var_y) = test_covariance(i,error);
+        for i in 300..310{
+            let (cov,corr, sigma_x, sigma_y, var_x, var_y,expected) = test_covariance(i,error);
             //println!("cov: {}",cov);
             println!("corr: {}",corr);
+            println!("expected: {}",expected);
             //println!("sigma_x: {}",sigma_x);
             //println!("sigma_y: {}",sigma_y);
             //println!("var_x: {}",var_x);
