@@ -96,11 +96,12 @@ where
     //println!("{:?}",body.data[1]);
     // Subtract the message in the list
     bodies_mut.iter_mut().zip(text_list).for_each(|(bod,text)| *bod =(*bod).wrapping_sub(*text));
-    
+   
+    /* 
     for a in bodies_mut.iter(){
         println!("{:#066b}",a);        
     }
-        
+     // */   
 }
 
 
@@ -204,121 +205,41 @@ fn test_covariance(dimension:usize,error: f64)->(f64,f64,f64,f64,f64,f64,f64,f64
     let mut sigma_x=0.0;
     let mut sigma_y=0.0;
     let decal = old_mod-new_mod;
+
     
-    /* 
-    for i in 0..number{
-        let body_ref=ciph_list[i].get_body();
-        esp_x+= (body_ref.data[0]>>decal) as f64;
-        esp_y+= (body_ref.data[1]>>decal) as f64;
-    }
-    esp_x /= number as f64;
-    esp_y /= number as f64;
-    for i in 0..number{
-        let body_ref=ciph_list[i].get_body();
-        cov_xy+= ((body_ref.data[0]>>decal) as f64 -esp_x)*((body_ref.data[1]>>decal) as f64 -esp_y);
-        var_x+= ((body_ref.data[0]>>decal) as f64 -esp_x)*((body_ref.data[0]>>decal) as f64 -esp_x);
-        var_y+= ((body_ref.data[1]>>decal) as f64 -esp_y)*((body_ref.data[1]>>decal) as f64 -esp_y);
-    }
-    cov_xy/=(number as f64-1.0);
-    var_x/=(number as f64-1.0);
-    var_y/=(number as f64-1.0);
-    
-    sigma_x=var_x.sqrt();
-    sigma_y=var_y.sqrt();
-    let cor_xy=cov_xy/(sigma_x*sigma_y);
-    return (cov_xy,cor_xy,sigma_x,sigma_y,var_x,var_y);
-    // */
-    
-    /* 
+  
     //Calculation of the expectation
+   
     for i in 0..number{
         let body_ref=ciph_list[i].get_body();
-        //esp_x+= (((body_ref.data[0] as i64)>>decal) as i32) as f64;
-        esp_x+= (body_ref.data[0] as i64) as f64;
-        esp_y+= (body_ref.data[1] as i64) as f64; 
-        //esp_y+= (((body_ref.data[1] as i64)>>decal)as i32) as f64;
+        esp_x+= ((((body_ref.data[0])>>decal) as i32) as f64);
+        esp_y+= ((((body_ref.data[1])>>decal)as i32) as f64);
     }
-    esp_x=(((esp_x as i64)>>decal) as i32) as f64;
-    esp_y=(((esp_y as i64)>>decal) as i32) as f64;
-    esp_x /= number as f64;
-    esp_y /= number as f64;
+    esp_x/= (number as f64);
+    esp_y/= (number as f64);
     
     //Calculation of the covariance, variances and standard deviation
     for i in 0..number{
         let body_ref=ciph_list[i].get_body();
-        cov_xy+= ((((body_ref.data[0] as i64)>>decal)as i32) as f64 -esp_x)*((((body_ref.data[1] as i64)>>decal)as i32) as f64 -esp_y);
-        var_x+= ((((body_ref.data[0] as i64)>>decal) as i32) as f64 -esp_x)*((((body_ref.data[0] as i64)>>decal)as i32) as f64 -esp_x);
-        var_y+= ((((body_ref.data[1] as i64)>>decal) as i32) as f64 -esp_y)*((((body_ref.data[1] as i64)>>decal) as i32) as f64 -esp_y);
+         
+        cov_xy+=((((body_ref.data[0])>>decal) as i32) as f64 -esp_x)*((((body_ref.data[1])>>decal) as i32) as f64 -esp_y);
+        var_x +=((((body_ref.data[0])>>decal) as i32) as f64 -esp_x)*((((body_ref.data[0])>>decal) as i32) as f64 -esp_x);
+        var_y +=((((body_ref.data[1])>>decal) as i32) as f64 -esp_y)*((((body_ref.data[1])>>decal) as i32) as f64 -esp_y);
+        
     }
     cov_xy/=(number as f64-1.0);
-    var_x/=(number as f64-1.0);
-    var_y/=(number as f64-1.0);
+    var_x /=(number as f64-1.0);
+    var_y /=(number as f64-1.0);
     sigma_x=var_x.sqrt();
     sigma_y=var_y.sqrt();
-    // */
     
-    /* 
-    //Calculation of the expectation
-    for i in 0..number{
-        let body_ref=ciph_list[i].get_body();
-        esp_x+= (((body_ref.data[0] as i64)>>decal) as i32) as f64;
-        //esp_x+= (body_ref.data[0] as i64) as f64;
-        //esp_y+= (body_ref.data[1] as i64) as f64; 
-        esp_y+= (((body_ref.data[1] as i64)>>decal)as i32) as f64;
-    }
-    //esp_x=(((esp_x as i64)>>decal) as i32) as f64;
-    //esp_y=(((esp_y as i64)>>decal) as i32) as f64;
-    esp_x /= number as f64;
-    esp_y /= number as f64;
-    
-    //Calculation of the covariance, variances and standard deviation
-    for i in 0..number{
-        let body_ref=ciph_list[i].get_body();
-        cov_xy+= ((((body_ref.data[0] as i64)>>decal)as i32) as f64 -esp_x)*((((body_ref.data[1] as i64)>>decal)as i32) as f64 -esp_y);
-        var_x+= ((((body_ref.data[0] as i64)>>decal) as i32) as f64 -esp_x)*((((body_ref.data[0] as i64)>>decal)as i32) as f64 -esp_x);
-        var_y+= ((((body_ref.data[1] as i64)>>decal) as i32) as f64 -esp_y)*((((body_ref.data[1] as i64)>>decal) as i32) as f64 -esp_y);
-    }
-    cov_xy/=(number as f64-1.0);
-    var_x/=(number as f64-1.0);
-    var_y/=(number as f64-1.0);
-    sigma_x=var_x.sqrt();
-    sigma_y=var_y.sqrt();
-    // */
-    
-    //* 
-    //Calculation of the expectation
-    for i in 0..number{
-        let body_ref=ciph_list[i].get_body();
-        esp_x+= ((((body_ref.data[0])>>decal) as i32) as f64)/(number as f64);
-        //esp_x+= (body_ref.data[0] as i64) as f64;
-        //esp_y+= (body_ref.data[1] as i64) as f64; 
-        esp_y+= ((((body_ref.data[1])>>decal)as i32) as f64)/(number as f64);
-    }
-    //esp_x=(((esp_x as i64)>>decal) as i32) as f64;
-    //esp_y=(((esp_y as i64)>>decal) as i32) as f64;
-    //esp_x /= number as f64;
-    //esp_y /= number as f64;
-    
-    //Calculation of the covariance, variances and standard deviation
-    for i in 0..number{
-        let body_ref=ciph_list[i].get_body();
-        cov_xy+=((((body_ref.data[0])>>decal) as i32) as f64 -esp_x)*((((body_ref.data[1])>>decal) as i32) as f64 -esp_y)/(number as f64-1.0);
-        var_x +=((((body_ref.data[0])>>decal) as i32) as f64 -esp_x)*((((body_ref.data[0])>>decal) as i32) as f64 -esp_x)/(number as f64-1.0);
-        var_y +=((((body_ref.data[1])>>decal) as i32) as f64 -esp_y)*((((body_ref.data[1])>>decal) as i32) as f64 -esp_y)/(number as f64-1.0);
-    }
-    //cov_xy/=(number as f64-1.0);
-    //var_x /=(number as f64-1.0);
-    //var_y /=(number as f64-1.0);
-    sigma_x=var_x.sqrt();
-    sigma_y=var_y.sqrt();
-    // */
     //correlation coefficient
     
     let cor_xy=cov_xy/(sigma_x*sigma_y);
     let ratio = 2.0.powi(-2*(decal as i32));
-    let expected = (dimension as f64)*(1.0-ratio)/(48.0*ratio*(error)*(error)+4.0-4.0*ratio+(dimension as f64)*(2.0+ratio));
+    let expected = (dimension as f64)*(1.0-ratio)/(48.0*ratio*(error)*(error)*2.0.powi(128)+4.0-4.0*ratio+(dimension as f64)*(2.0+ratio));
     let expected_cov=  (dimension as f64)*(1.0-ratio)/48.0;
-    let expected_var = (48.0*ratio*(error)*(error)+4.0-4.0*ratio+(dimension as f64)*(2.0+ratio))/48.0;
+    let expected_var = (48.0*ratio*(error)*(error)*2.0.powi(128)+4.0-4.0*ratio+(dimension as f64)*(2.0+ratio))/48.0;
     return (cov_xy,cor_xy,sigma_x,sigma_y,var_x,var_y,expected,expected_cov,expected_var);
        
 }
@@ -350,6 +271,7 @@ fn test_cov(){
             println!("expected_cov: {}",expected_cov);
             println!("corr: {}",corr);
             println!("expected_var: {}",expected_var);
+            println!("expected_log_2 var: {}",expected_var.log2());
             println!("expected: {}",expected);
             println!("log_2 cov: {}",cov.log2());
             println!("log_2 expected_cov: {}",expected_cov.log2());
