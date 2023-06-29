@@ -735,7 +735,13 @@ pub fn circuit_bootstrap_boolean_vertical_packing<Scalar: UnsignedTorus + CastIn
         big_lut_as_polynomial_list.chunks_exact(small_lut_size),
         lwe_list_out.iter_mut(),
     ) {
-        vertical_packing(lut, lwe_out, ggsw_list.as_view(), fft, stack.rb_mut());
+        vertical_packing(
+            PolynomialList::from_container(lut.as_ref(), lut.polynomial_size()),
+            lwe_out,
+            ggsw_list.as_view(),
+            fft,
+            stack.rb_mut(),
+        );
     }
 }
 
@@ -775,6 +781,97 @@ pub fn vertical_packing_scratch<Scalar>(
     ])
 }
 
+// debug_assert!(
+//     lwe_out.ciphertext_modulus().is_native_modulus(),
+//     "This operation currently only supports native moduli"
+// );
+
+// let polynomial_size = ggsw_list.polynomial_size();
+// let glwe_size = ggsw_list.glwe_size();
+// let glwe_dimension = glwe_size.to_glwe_dimension();
+// let ciphertext_modulus = lwe_out.ciphertext_modulus();
+
+// debug_assert!(
+//     lwe_out.lwe_size().to_lwe_dimension().0 == polynomial_size.0 * glwe_dimension.0,
+//     "Output LWE ciphertext needs to have an LweDimension of {}, got {}",
+//     polynomial_size.0 * glwe_dimension.0,
+//     lwe_out.lwe_size().to_lwe_dimension().0,
+// );
+
+// let log_lut_poly_size = lut.polynomial_size().0.ilog2();
+// let log_poly_size = polynomial_size.0.ilog2();
+
+// let (mut cmux_tree_lut_res_data, mut stack) =
+//     stack.make_aligned_with(polynomial_size.0 * glwe_size.0, CACHELINE_ALIGN, |_| {
+//         Scalar::ZERO
+//     });
+// let mut cmux_tree_lut_res = GlweCiphertext::from_container(
+//     &mut *cmux_tree_lut_res_data,
+//     polynomial_size,
+//     ciphertext_modulus,
+// );
+
+// let br_ggsw = match log_lut_poly_size.cmp(&log_poly_size) {
+//     std::cmp::Ordering::Less => {
+//         assert!(lut.entity_count() == 1);
+//         cmux_tree_lut_res.get_mut_body().as_mut()[0..lut.polynomial_size().0]
+//             .copy_from_slice(lut.as_ref());
+//         ggsw_list
+//     }
+//     std::cmp::Ordering::Equal => {
+//         if lut.entity_count() == 1 {
+//             cmux_tree_lut_res
+//                 .get_mut_body()
+//                 .as_mut()
+//                 .copy_from_slice(lut.as_ref());
+//             ggsw_list
+//         } else {
+//             cmux_tree_memory_optimized(
+//                 cmux_tree_lut_res.as_mut_view(),
+//                 lut,
+//                 ggsw_list,
+//                 fft,
+//                 stack.rb_mut(),
+//             );
+
+//             ggsw_list
+//         }
+//     }
+//     std::cmp::Ordering::Greater => {
+//         let log_number_of_luts_for_cmux_tree = log_lut_poly_size - log_poly_size;
+
+//         // split the vec of GGSW in two, the msb GGSW is for the CMux tree and the lsb GGSW is
+//         // for the last blind rotation.
+//         let (cmux_ggsw, br_ggsw) =
+//             ggsw_list.split_at(log_number_of_luts_for_cmux_tree as usize);
+//         assert_eq!(br_ggsw.count(), log_poly_size as usize);
+
+//         // We re-interpret the list to match the small polynomial size
+//         let resized_lut = PolynomialList::from_container(lut.as_ref(), polynomial_size);
+//         assert_eq!(
+//             resized_lut.entity_count(),
+//             1 << (log_lut_poly_size - log_poly_size)
+//         );
+
+//         cmux_tree_memory_optimized(
+//             cmux_tree_lut_res.as_mut_view(),
+//             resized_lut,
+//             cmux_ggsw,
+//             fft,
+//             stack.rb_mut(),
+//         );
+
+//         br_ggsw
+//     }
+// };
+
+// blind_rotate_assign(
+//     cmux_tree_lut_res.as_mut_view(),
+//     br_ggsw,
+//     fft,
+//     stack.rb_mut(),
+// );
+
 // GGSW ciphertexts are stored from the msb (vec_ggsw[0]) to the lsb (vec_ggsw[last])
 pub fn vertical_packing<Scalar: UnsignedTorus + CastInto<usize>>(
     lut: PolynomialList<&[Scalar]>,
@@ -802,8 +899,7 @@ pub fn vertical_packing<Scalar: UnsignedTorus + CastInto<usize>>(
 
     // Get the base 2 logarithm (rounded down) of the number of polynomials in the list i.e. if
     // there is one polynomial, the number will be 0
-    let log_lut_number: usize =
-        Scalar::BITS - 1 - lut.polynomial_count().0.leading_zeros() as usize;
+    let log_lut_number = lut.polynomial_count().0.ilog2() as usize;
 
     let log_number_of_luts_for_cmux_tree = if log_lut_number > ggsw_list.count() {
         // this means that we dont have enough GGSW to perform the CMux tree, we can only do the
@@ -826,6 +922,45 @@ pub fn vertical_packing<Scalar: UnsignedTorus + CastInto<usize>>(
         polynomial_size,
         ciphertext_modulus,
     );
+
+    let log_lut_poly_size = lut.polynomial_size().0.ilog2();
+    let log_poly_size = polynomial_size.0.ilog2();
+
+    let mut expanded_lut: PolynomialListOwned<Scalar>;
+
+    let (cmux_ggsw, br_ggsw, lut) = match log_lut_poly_size.cmp(&log_poly_size) {
+        std::cmp::Ordering::Less => {
+            expanded_lut =
+                PolynomialList::new(Scalar::ZERO, polynomial_size, lut.polynomial_count());
+            expanded_lut
+                .iter_mut()
+                .zip(lut.iter())
+                .for_each(|(mut dst, src)| {
+                    dst.as_mut()[..src.polynomial_size().0].copy_from_slice(src.as_ref())
+                });
+
+            (cmux_ggsw, br_ggsw, expanded_lut.as_view())
+        }
+        std::cmp::Ordering::Equal => (cmux_ggsw, br_ggsw, lut),
+        std::cmp::Ordering::Greater => {
+            let log_number_of_luts_for_cmux_tree = log_lut_poly_size - log_poly_size;
+
+            // split the vec of GGSW in two, the msb GGSW is for the CMux tree and the lsb GGSW is
+            // for the last blind rotation.
+            let (cmux_ggsw, br_ggsw) =
+                ggsw_list.split_at(log_number_of_luts_for_cmux_tree as usize);
+            assert_eq!(br_ggsw.count(), log_poly_size as usize);
+
+            // We re-interpret the list to match the small polynomial size
+            let resized_lut = PolynomialList::from_container(lut.as_ref(), polynomial_size);
+            assert_eq!(
+                resized_lut.entity_count(),
+                1 << (log_lut_poly_size - log_poly_size)
+            );
+
+            (cmux_ggsw, br_ggsw, resized_lut)
+        }
+    };
 
     cmux_tree_memory_optimized(
         cmux_tree_lut_res.as_mut_view(),
