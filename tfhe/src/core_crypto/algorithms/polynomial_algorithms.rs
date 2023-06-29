@@ -5,6 +5,8 @@ use crate::core_crypto::commons::numeric::UnsignedInteger;
 use crate::core_crypto::commons::parameters::MonomialDegree;
 use crate::core_crypto::commons::traits::*;
 use crate::core_crypto::entities::*;
+use concrete_ntt::{native128, native32, native64};
+use core::any::TypeId;
 
 /// Add a polynomial to the output polynomial.
 ///
@@ -150,6 +152,48 @@ pub fn polynomial_wrapping_add_mul_assign<Scalar, OutputCont, InputCont1, InputC
     let polynomial_size = output.polynomial_size();
 
     if polynomial_size.0.is_power_of_two() && polynomial_size.0 > KARATUSBA_STOP {
+        if polynomial_size.0 >= NTT_THRESHOLD {
+            let lhs = lhs.as_ref();
+            let rhs = rhs.as_ref();
+            let out = output.as_mut();
+
+            let id = TypeId::of::<Scalar>();
+
+            use core::mem::transmute;
+
+            if id == TypeId::of::<u32>() {
+                if let Some(plan) = native32::Plan32::try_new(polynomial_size.0) {
+                    let lhs: &[u32] = unsafe { transmute(lhs) };
+                    let rhs: &[u32] = unsafe { transmute(rhs) };
+                    let out: &mut [u32] = unsafe { transmute(out) };
+                    let mut tmp = Polynomial::new(0u32, polynomial_size);
+                    plan.negacyclic_polymul(tmp.as_mut(), lhs, rhs);
+                    polynomial_wrapping_add_assign(&mut Polynomial::from_container(out), &tmp);
+                    return;
+                }
+            } else if id == TypeId::of::<u64>() {
+                if let Some(plan) = native64::Plan32::try_new(polynomial_size.0) {
+                    let lhs: &[u64] = unsafe { transmute(lhs) };
+                    let rhs: &[u64] = unsafe { transmute(rhs) };
+                    let out: &mut [u64] = unsafe { transmute(out) };
+                    let mut tmp = Polynomial::new(0u64, polynomial_size);
+                    plan.negacyclic_polymul(tmp.as_mut(), lhs, rhs);
+                    polynomial_wrapping_add_assign(&mut Polynomial::from_container(out), &tmp);
+                    return;
+                }
+            } else if id == TypeId::of::<u128>() {
+                if let Some(plan) = native128::Plan32::try_new(polynomial_size.0) {
+                    let lhs: &[u128] = unsafe { transmute(lhs) };
+                    let rhs: &[u128] = unsafe { transmute(rhs) };
+                    let out: &mut [u128] = unsafe { transmute(out) };
+                    let mut tmp = Polynomial::new(0u128, polynomial_size);
+                    plan.negacyclic_polymul(tmp.as_mut(), lhs, rhs);
+                    polynomial_wrapping_add_assign(&mut Polynomial::from_container(out), &tmp);
+                    return;
+                }
+            }
+        }
+
         let mut tmp = Polynomial::new(Scalar::ZERO, polynomial_size);
 
         polynomial_karatsuba_wrapping_mul(&mut tmp, lhs, rhs);
@@ -605,6 +649,7 @@ pub fn polynomial_karatsuba_wrapping_mul<Scalar, OutputCont, LhsCont, RhsCont>(
 }
 
 const KARATUSBA_STOP: usize = 64;
+const NTT_THRESHOLD: usize = 256;
 /// Compute the induction for the karatsuba algorithm.
 fn induction_karatsuba<Scalar>(res: &mut [Scalar], p: &[Scalar], q: &[Scalar])
 where
