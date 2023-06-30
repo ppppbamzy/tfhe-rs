@@ -8,6 +8,7 @@ use std::env;
 
 use criterion::{criterion_group, criterion_main, Criterion};
 use itertools::iproduct;
+use rand::prelude::*;
 use rand::Rng;
 use std::vec::IntoIter;
 use tfhe::integer::keycache::KEY_CACHE;
@@ -401,13 +402,15 @@ fn bench_server_key_binary_scalar_function_dirty_inputs<F>(
     bench_group.finish()
 }
 
-fn bench_server_key_binary_scalar_function_clean_inputs<F>(
+fn bench_server_key_binary_scalar_function_clean_inputs<F, G>(
     c: &mut Criterion,
     bench_name: &str,
     display_name: &str,
     binary_op: F,
+    rng_func: G,
 ) where
     F: Fn(&ServerKey, &mut RadixCiphertext, u64),
+    G: Fn(&mut ThreadRng) -> u64,
 {
     let mut bench_group = c.benchmark_group(bench_name);
     bench_group
@@ -416,45 +419,79 @@ fn bench_server_key_binary_scalar_function_clean_inputs<F>(
     let mut rng = rand::thread_rng();
 
     for (param, num_block, bit_size) in ParamsAndNumBlocksIter::default() {
+        if bit_size > 64 {
+            break;
+        }
         let param_name = param.name();
 
-        let bench_id = format!("{bench_name}::{param_name}::{bit_size}_bits");
-        bench_group.bench_function(&bench_id, |b| {
-            let (cks, sks) = KEY_CACHE.get_from_params(param);
+        for clear_size in [2, 4, 8, 16, 32, 40, 64] {
+            if clear_size > bit_size {
+                break;
+            }
 
-            let encrypt_one_value = || {
-                let clearlow = rng.gen::<u128>();
-                let clearhigh = rng.gen::<u128>();
+            let bench_id =
+                format!("{bench_name}::{param_name}::{bit_size}_bits_scalar_{clear_size}");
+            bench_group.bench_function(&bench_id, |b| {
+                let (cks, sks) = KEY_CACHE.get_from_params(param);
 
-                let clear_0 = tfhe::integer::U256::from((clearlow, clearhigh));
-                let ct_0 = cks.encrypt_radix(clear_0, num_block);
+                let encrypt_one_value = || {
+                    let clearlow = rng.gen::<u128>();
+                    let clearhigh = rng.gen::<u128>();
 
-                let clear_1 = rng.gen::<u64>();
+                    let clear_0 = tfhe::integer::U256::from((clearlow, clearhigh));
+                    let ct_0 = cks.encrypt_radix(clear_0, num_block);
 
-                (ct_0, clear_1)
-            };
+                    let clear_1 = rng_func(&mut rng) % 1 << clear_size;
 
-            b.iter_batched(
-                encrypt_one_value,
-                |(mut ct_0, clear_1)| {
-                    binary_op(&sks, &mut ct_0, clear_1);
-                },
-                criterion::BatchSize::SmallInput,
-            )
-        });
+                    (ct_0, clear_1)
+                };
 
-        write_to_json::<u64, _>(
-            &bench_id,
-            param,
-            param.name(),
-            display_name,
-            &OperatorType::Atomic,
-            bit_size as u32,
-            vec![param.message_modulus().0.ilog2(); num_block],
-        );
+                b.iter_batched(
+                    encrypt_one_value,
+                    |(mut ct_0, clear_1)| {
+                        binary_op(&sks, &mut ct_0, clear_1);
+                    },
+                    criterion::BatchSize::SmallInput,
+                )
+            });
+
+            write_to_json::<u64, _>(
+                &bench_id,
+                param,
+                param.name(),
+                display_name,
+                &OperatorType::Atomic,
+                bit_size as u32,
+                vec![param.message_modulus().0.ilog2(); num_block],
+            );
+        }
     }
 
     bench_group.finish()
+}
+
+// Functions used to apply different way of selecting a scalar based on the context.
+fn default_scalar(rng: &mut ThreadRng) -> u64 {
+    rng.gen::<u64>()
+}
+
+fn shift_scalar(_rng: &mut ThreadRng) -> u64 {
+    // Shifting by one is the worst case scenario.
+    1
+}
+
+fn mul_scalar(rng: &mut ThreadRng) -> u64 {
+    loop {
+        let scalar = rng.gen_range(3u64..=u64::MAX);
+        // If scalar is power of two, it is just a shit, which is an happy path.
+        if !scalar.is_power_of_two() {
+            return scalar;
+        }
+    }
+}
+
+fn div_scalar(rng: &mut ThreadRng) -> u64 {
+        rng.gen_range(1..=u64::MAX)
 }
 
 macro_rules! define_server_key_bench_unary_fn (
@@ -528,7 +565,7 @@ macro_rules! define_server_key_bench_scalar_fn (
 );
 
 macro_rules! define_server_key_bench_scalar_default_fn (
-    (method_name: $server_key_method:ident, display_name:$name:ident) => {
+    (method_name: $server_key_method:ident, display_name:$name:ident, rng_func:$($rng_fn:tt)*) => {
         fn $server_key_method(c: &mut Criterion) {
             bench_server_key_binary_scalar_function_clean_inputs(
                 c,
@@ -536,7 +573,7 @@ macro_rules! define_server_key_bench_scalar_default_fn (
                 stringify!($name),
                 |server_key, lhs, rhs| {
                   server_key.$server_key_method(lhs, rhs);
-            })
+            }, $($rng_fn)*)
         }
     }
   );
@@ -584,9 +621,18 @@ define_server_key_bench_fn!(
     display_name: bitxor
 );
 
-define_server_key_bench_scalar_fn!(method_name: smart_scalar_add, display_name: add);
-define_server_key_bench_scalar_fn!(method_name: smart_scalar_sub, display_name: sub);
-define_server_key_bench_scalar_fn!(method_name: smart_scalar_mul, display_name: mul);
+define_server_key_bench_scalar_fn!(
+    method_name: smart_scalar_add,
+    display_name: add
+);
+define_server_key_bench_scalar_fn!(
+    method_name: smart_scalar_sub,
+    display_name: sub
+);
+define_server_key_bench_scalar_fn!(
+    method_name: smart_scalar_mul,
+    display_name: mul
+);
 
 define_server_key_bench_scalar_fn!(
     method_name: smart_scalar_add_parallelized,
@@ -601,53 +647,104 @@ define_server_key_bench_scalar_fn!(
     display_name: mul
 );
 
-define_server_key_bench_scalar_default_fn!(method_name: scalar_add_parallelized, display_name: add);
-define_server_key_bench_scalar_default_fn!(method_name: scalar_sub_parallelized, display_name: sub);
-define_server_key_bench_scalar_default_fn!(method_name: scalar_mul_parallelized, display_name: mul);
+define_server_key_bench_scalar_default_fn!(
+    method_name: scalar_add_parallelized,
+    display_name: add,
+    rng_func: default_scalar
+);
+define_server_key_bench_scalar_default_fn!(
+    method_name: scalar_sub_parallelized,
+    display_name: sub,
+    rng_func: default_scalar
+);
+define_server_key_bench_scalar_default_fn!(
+    method_name: scalar_mul_parallelized,
+    display_name: mul,
+    rng_func: mul_scalar
+);
+define_server_key_bench_scalar_default_fn!(
+    method_name: scalar_div_parallelized,
+    display_name: div,
+    rng_func: div_scalar
+);
+define_server_key_bench_scalar_default_fn!(
+    method_name: scalar_rem_parallelized,
+    display_name: modulo,
+    rng_func: div_scalar
+);
 define_server_key_bench_scalar_default_fn!(
     method_name: scalar_left_shift_parallelized,
-    display_name: left_shift
+    display_name: left_shift,
+    rng_func: shift_scalar
 );
 define_server_key_bench_scalar_default_fn!(
     method_name: scalar_right_shift_parallelized,
-    display_name: right_shift
+    display_name: right_shift,
+    rng_func: shift_scalar
+);
+define_server_key_bench_scalar_default_fn!(
+    method_name: scalar_rotate_left_parallelized,
+    display_name: rotate_left,
+    rng_func: shift_scalar
+);
+define_server_key_bench_scalar_default_fn!(
+    method_name: scalar_rotate_right_parallelized,
+    display_name: rotate_right,
+    rng_func: shift_scalar
 );
 define_server_key_bench_scalar_default_fn!(
     method_name: scalar_eq_parallelized,
-    display_name: scalar_equal
+    display_name: scalar_equal,
+    rng_func: default_scalar
 );
 define_server_key_bench_scalar_default_fn!(
     method_name: scalar_ne_parallelized,
-    display_name: scalar_not_equal
+    display_name: scalar_not_equal,
+    rng_func: default_scalar
 );
 define_server_key_bench_scalar_default_fn!(
     method_name: scalar_le_parallelized,
-    display_name: scalar_less_or_equal
+    display_name: scalar_less_or_equal,
+    rng_func: default_scalar
 );
 define_server_key_bench_scalar_default_fn!(
     method_name: scalar_lt_parallelized,
-    display_name: scalar_less_than
+    display_name: scalar_less_than,
+    rng_func: default_scalar
 );
 define_server_key_bench_scalar_default_fn!(
     method_name: scalar_ge_parallelized,
-    display_name: scalar_greater_or_equal
+    display_name: scalar_greater_or_equal,
+    rng_func: default_scalar
 );
 define_server_key_bench_scalar_default_fn!(
     method_name: scalar_gt_parallelized,
-    display_name: scalar_greater_than
+    display_name: scalar_greater_than,
+    rng_func: default_scalar
 );
 define_server_key_bench_scalar_default_fn!(
     method_name: scalar_max_parallelized,
-    display_name: scalar_max
+    display_name: scalar_max,
+    rng_func: default_scalar
 );
 define_server_key_bench_scalar_default_fn!(
     method_name: scalar_min_parallelized,
-    display_name: scalar_min
+    display_name: scalar_min,
+    rng_func: default_scalar
 );
 
-define_server_key_bench_scalar_fn!(method_name: unchecked_scalar_add, display_name: add);
-define_server_key_bench_scalar_fn!(method_name: unchecked_scalar_sub, display_name: sub);
-define_server_key_bench_scalar_fn!(method_name: unchecked_small_scalar_mul, display_name: mul);
+define_server_key_bench_scalar_fn!(
+    method_name: unchecked_scalar_add,
+    display_name: add
+);
+define_server_key_bench_scalar_fn!(
+    method_name: unchecked_scalar_sub,
+    display_name: sub
+);
+define_server_key_bench_scalar_fn!(
+    method_name: unchecked_small_scalar_mul,
+    display_name: mul
+);
 
 define_server_key_bench_unary_fn!(method_name: smart_neg, display_name: negation);
 define_server_key_bench_unary_fn!(method_name: smart_neg_parallelized, display_name: negation);
@@ -809,8 +906,12 @@ criterion_group!(
     scalar_add_parallelized,
     scalar_sub_parallelized,
     scalar_mul_parallelized,
+    scalar_div_parallelized,
+    scalar_rem_parallelized,
     scalar_left_shift_parallelized,
     scalar_right_shift_parallelized,
+    scalar_rotate_left_parallelized,
+    scalar_rotate_right_parallelized,
 );
 
 criterion_group!(
@@ -853,31 +954,35 @@ criterion_group!(misc, full_propagate, full_propagate_parallelized);
 // This gather all the operations that a high-level user could use.
 criterion_group!(
     fast_integer_benchmarks,
-    bitand_parallelized,
-    bitnot_parallelized,
-    bitor_parallelized,
-    bitxor_parallelized,
-    add_parallelized,
-    sub_parallelized,
-    mul_parallelized,
-    neg_parallelized,
-    min_parallelized,
-    max_parallelized,
-    eq_parallelized,
-    ne_parallelized,
-    lt_parallelized,
-    le_parallelized,
-    gt_parallelized,
-    ge_parallelized,
-    left_shift_parallelized,
-    right_shift_parallelized,
-    rotate_left_parallelized,
-    rotate_right_parallelized,
+    // bitand_parallelized,
+    // bitnot_parallelized,
+    // bitor_parallelized,
+    // bitxor_parallelized,
+    // add_parallelized,
+    // sub_parallelized,
+    // mul_parallelized,
+    // neg_parallelized,
+    // min_parallelized,
+    // max_parallelized,
+    // eq_parallelized,
+    // ne_parallelized,
+    // lt_parallelized,
+    // le_parallelized,
+    // gt_parallelized,
+    // ge_parallelized,
+    // left_shift_parallelized,
+    // right_shift_parallelized,
+    // rotate_left_parallelized,
+    // rotate_right_parallelized,
     scalar_add_parallelized,
     scalar_sub_parallelized,
     scalar_mul_parallelized,
+    scalar_div_parallelized,
+    scalar_rem_parallelized,
     scalar_left_shift_parallelized,
     scalar_right_shift_parallelized,
+    scalar_rotate_left_parallelized,
+    scalar_rotate_right_parallelized,
     scalar_eq_parallelized,
     scalar_ne_parallelized,
     scalar_lt_parallelized,
