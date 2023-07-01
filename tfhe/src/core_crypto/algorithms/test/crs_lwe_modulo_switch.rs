@@ -129,7 +129,7 @@ fn test_compare(){
 }
 
 
-fn test_covariance(dimension:usize,error: f64)->(f64,f64,f64,f64,f64,f64,f64,f64,f64){
+fn test_covariance(dimension:usize,error: f64,nb_run:usize)->(f64,f64,f64,f64,f64,f64,f64,f64,f64){
 
     let crs_lwe_dimension = CRSLweDimension(dimension);
     let crs_lwe_codimension = CRSLweCodimension(2);
@@ -160,7 +160,7 @@ fn test_covariance(dimension:usize,error: f64)->(f64,f64,f64,f64,f64,f64,f64,f64
         *el = (*el).wrapping_add((1 as u64)<<delta);
     }
     // Create a CRSLweCiphertext list
-    let number:usize= 100000;
+    let number:usize= nb_run;
     let mut ciph_list =vec![CRSLweCiphertext::new(0u64, crs_lwe_dimension.to_crs_lwe_size(crs_lwe_codimension), ciphertext_modulus);number];
     //0..number.map(|_|).collect())
     let old_mod:usize = 64;
@@ -255,18 +255,21 @@ fn testy(){
 #[test]
 fn test_cov(){
     
-    for j in 25..=30{
+    for j in 25..=40{
         //let error = 1.0/((1<<j) as f64);
         let error = 2.0.powi(-(j as i32));
         //let error = 0.0;
-       
+        
+        println!();
         println!("Error: {}",error);
         println!("j: {}",j);
         println!();
         for i in 700..701{
             
             println!();
-            let (cov,corr, sigma_x, sigma_y, var_x, var_y,expected,expected_cov,expected_var) = test_covariance(i,error);
+            let nb_run = 100000;
+            let (cov,corr, sigma_x, sigma_y, var_x, var_y,expected,expected_cov,expected_var) = test_covariance(i,error,nb_run);
+            let interval = 1.96*(1.-expected*expected)*expected_var/((nb_run as f64).sqrt());
             println!("cov: {}",cov);
             println!("expected_cov: {}",expected_cov);
             println!("log_2 cov: {}",cov.log2());
@@ -279,7 +282,7 @@ fn test_cov(){
             println!("expected_log_2 var: {}",expected_var.log2());
             println!("log_2 var_x: {}",var_x.log2());
             println!("log_2 var_y: {}",var_y.log2());
-            
+            println!("interval: [{};{}]",cov-interval,cov+interval);
             //println!("sigma_x: {}",sigma_x);
             //println!("sigma_y: {}",sigma_y);
 
