@@ -180,6 +180,8 @@ impl U256 {
             let shortest_len = inner_byte_slice.len().min(bytes.len());
             bytes[..shortest_len].copy_from_slice(&inner_byte_slice[..shortest_len]);
         }
+        bytes.reverse();
+
         #[cfg(target_endian = "big")]
         for sub_slice in bytes.chunks_mut(8) {
             sub_slice.reverse();
@@ -852,8 +854,8 @@ mod tests {
 
     #[test]
     fn test_le_byte_slice() {
-        let low = u64::MAX as u128;
-        let high = (u64::MAX as u128) << 64;
+        let low = 1u128 | (2u128 << 32);
+        let high = 3u128 | (4u128 << 32);
 
         let mut le_bytes = vec![0u8; 32];
         le_bytes[..16].copy_from_slice(low.to_le_bytes().as_slice());
@@ -872,8 +874,8 @@ mod tests {
 
     #[test]
     fn test_be_byte_slice() {
-        let low = u64::MAX as u128;
-        let high = (u64::MAX as u128) << 64;
+        let low = 1u128 | (2u128 << 32);
+        let high = 3u128 | (4u128 << 32);
 
         let mut be_bytes = vec![0u8; 32];
         be_bytes[16..].copy_from_slice(low.to_be_bytes().as_slice());
