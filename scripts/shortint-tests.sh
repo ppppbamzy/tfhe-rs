@@ -139,7 +139,7 @@ and not test(~smart_add_and_mul)""" # This test is too slow
                 --package tfhe \
                 --features="${ARCH_FEATURE}",shortint,internal-keycache \
                 --doc \
-                -- shortint::
+                -- --test-threads=1 shortint::
         fi
     # fi
 else

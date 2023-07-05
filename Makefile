@@ -303,7 +303,7 @@ test_high_level_api: install_rs_build_toolchain
 test_user_doc: install_rs_build_toolchain
 	RUSTFLAGS="$(RUSTFLAGS)" cargo $(CARGO_RS_BUILD_TOOLCHAIN) test --profile $(CARGO_PROFILE) --doc \
 		--features=$(TARGET_ARCH_FEATURE),boolean,shortint,integer,internal-keycache -p tfhe \
-		-- test_user_docs::
+		-- --test-threads=1 test_user_docs::
 
 .PHONY: test_regex_engine # Run tests for regex_engine example
 test_regex_engine: install_rs_build_toolchain
