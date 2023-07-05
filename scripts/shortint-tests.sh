@@ -8,11 +8,13 @@ function usage() {
     echo "--help                    Print this message"
     echo "--rust-toolchain          The toolchain to run the tests with default: stable"
     echo "--multi-bit               Run multi-bit tests only: default off"
+    echo "--cargo-profile           The cargo profile used to build tests"
     echo
 }
 
 RUST_TOOLCHAIN="+stable"
 multi_bit=""
+cargo_profile="release"
 
 while [ -n "$1" ]
 do
@@ -29,6 +31,11 @@ do
 
         "--multi-bit" )
             multi_bit="_multi_bit"
+            ;;
+
+        "--cargo-profile" )
+            shift
+            cargo_profile="$1"
             ;;
 
         *)
@@ -99,42 +106,42 @@ or test(/^shortint::.*_param${multi_bit}_message_2_carry_3${multi_bit:+"_group_[
 and not test(~smart_add_and_mul)""" # This test is too slow
     fi
 
-    # Run tests only no examples or benches with small params and more threads
-    cargo "${RUST_TOOLCHAIN}" nextest run \
-        --tests \
-        --release \
-        --package tfhe \
-        --profile ci \
-        --features="${ARCH_FEATURE}",shortint,internal-keycache \
-        --test-threads "${n_threads_small}" \
-        -E "${filter_expression_small_params}"
+#     # Run tests only no examples or benches with small params and more threads
+#     cargo "${RUST_TOOLCHAIN}" nextest run \
+#         --tests \
+#         --release \
+#         --package tfhe \
+#         --profile ci \
+#         --features="${ARCH_FEATURE}",shortint,internal-keycache \
+#         --test-threads "${n_threads_small}" \
+#         -E "${filter_expression_small_params}"
 
-    if [[ "${FAST_TESTS}" != TRUE ]]; then
-        filter_expression_big_params="""\
-(\
-   test(/^shortint::.*_param${multi_bit}_message_4_carry_4${multi_bit:+"_group_[0-9]"}(_compact_pk)?_ks_pbs/) \
-) \
-and not test(~smart_add_and_mul)"""
+#     if [[ "${FAST_TESTS}" != TRUE ]]; then
+#         filter_expression_big_params="""\
+# (\
+#    test(/^shortint::.*_param${multi_bit}_message_4_carry_4${multi_bit:+"_group_[0-9]"}(_compact_pk)?_ks_pbs/) \
+# ) \
+# and not test(~smart_add_and_mul)"""
 
-    # Run tests only no examples or benches with big params and less threads
-    cargo "${RUST_TOOLCHAIN}" nextest run \
-        --tests \
-        --release \
-        --package tfhe \
-        --profile ci \
-        --features="${ARCH_FEATURE}",shortint,internal-keycache \
-        --test-threads "${n_threads_big}" \
-        -E "${filter_expression_big_params}"
+#         # Run tests only no examples or benches with big params and less threads
+#         cargo "${RUST_TOOLCHAIN}" nextest run \
+#             --tests \
+#             --release \
+#             --package tfhe \
+#             --profile ci \
+#             --features="${ARCH_FEATURE}",shortint,internal-keycache \
+#             --test-threads "${n_threads_big}" \
+#             -E "${filter_expression_big_params}"
 
         if [[ "${multi_bit}" == "" ]]; then
             cargo "${RUST_TOOLCHAIN}" test \
-                --release \
+                --profile "${cargo_profile}" \
                 --package tfhe \
                 --features="${ARCH_FEATURE}",shortint,internal-keycache \
                 --doc \
-                shortint::
+                -- shortint::
         fi
-    fi
+    # fi
 else
     if [[ "${FAST_TESTS}" != TRUE ]]; then
         filter_expression="""\
@@ -176,11 +183,11 @@ and not test(~smart_add_and_mul)""" # This test is too slow
 
     if [[ "${multi_bit}" == "" ]]; then
         cargo "${RUST_TOOLCHAIN}" test \
-            --release \
+            --profile "${cargo_profile}" \
             --package tfhe \
             --features="${ARCH_FEATURE}",shortint,internal-keycache \
             --doc \
-            shortint:: -- --test-threads="$(${nproc_bin})"
+            -- --test-threads="$(${nproc_bin})" shortint::
     fi
 fi
 

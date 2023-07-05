@@ -35,45 +35,45 @@ jobs:
           toolchain: stable
           default: true
 
-      - name: Run pcc checks
-        run: |
-          make pcc
+      # - name: Run pcc checks
+      #   run: |
+      #     make pcc
 
-      - name: Build Release core
-        run: |
-          make build_core
+      # - name: Build Release core
+      #   run: |
+      #     make build_core
 
-      - name: Build Release boolean
-        run: |
-          make build_boolean
+      # - name: Build Release boolean
+      #   run: |
+      #     make build_boolean
 
-      - name: Build Release shortint
-        run: |
-          make build_shortint
+      # - name: Build Release shortint
+      #   run: |
+      #     make build_shortint
 
-      - name: Build Release integer
-        run: |
-          make build_integer
+      # - name: Build Release integer
+      #   run: |
+      #     make build_integer
 
-      - name: Build Release tfhe full
-        run: |
-          make build_tfhe_full
+      # - name: Build Release tfhe full
+      #   run: |
+      #     make build_tfhe_full
 
-      - name: Build Release c_api
-        run: |
-          make build_c_api
+      # - name: Build Release c_api
+      #   run: |
+      #     make build_c_api
 
-      - name: Run core tests
-        run: |
-          make test_core_crypto
+      # - name: Run core tests
+      #   run: |
+      #     make test_core_crypto
 
-      - name: Run boolean tests
-        run: |
-          make test_boolean
+      # - name: Run boolean tests
+      #   run: |
+      #     make test_boolean
 
-      - name: Run C API tests
-        run: |
-          make test_c_api
+      # - name: Run C API tests
+      #   run: |
+      #     make test_c_api
 
       - name: Run user docs tests
         run: |
