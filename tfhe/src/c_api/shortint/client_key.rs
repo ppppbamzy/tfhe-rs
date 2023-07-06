@@ -94,6 +94,23 @@ pub unsafe extern "C" fn shortint_client_key_decrypt(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn shortint_client_key_decrypt_raw(
+    client_key: *const ShortintClientKey,
+    ciphertext_to_decrypt: *const ShortintCiphertext,
+    result: *mut u64,
+) -> c_int {
+    catch_panic(|| {
+        check_ptr_is_non_null_and_aligned(result).unwrap();
+
+        let client_key = get_ref_checked(client_key).unwrap();
+        let ciphertext_to_decrypt = get_ref_checked(ciphertext_to_decrypt).unwrap();
+        let inner_ct = &ciphertext_to_decrypt.0;
+
+        *result = client_key.0.decrypt_raw(inner_ct);
+    })
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn shortint_serialize_client_key(
     client_key: *const ShortintClientKey,
     result: *mut Buffer,

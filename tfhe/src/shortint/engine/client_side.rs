@@ -298,6 +298,20 @@ impl ShortintEngine {
         Ok((decrypted_u64.wrapping_add(rounding)) / delta)
     }
 
+    pub fn decrypt_raw(&mut self, client_key: &ClientKey, ct: &Ciphertext) -> EngineResult<u64> {
+        let lwe_decryption_key = match ct.pbs_order {
+            PBSOrder::KeyswitchBootstrap => &client_key.large_lwe_secret_key,
+            PBSOrder::BootstrapKeyswitch => &client_key.small_lwe_secret_key,
+        };
+
+        // decryption
+        let decrypted_encoded = decrypt_lwe_ciphertext(lwe_decryption_key, &ct.ct);
+
+        let decrypted_u64: u64 = decrypted_encoded.0;
+
+        Ok(decrypted_u64)
+    }
+
     pub fn decrypt(&mut self, client_key: &ClientKey, ct: &Ciphertext) -> EngineResult<u64> {
         self.decrypt_message_and_carry(client_key, ct)
             .map(|message_and_carry| message_and_carry % ct.message_modulus.0 as u64)

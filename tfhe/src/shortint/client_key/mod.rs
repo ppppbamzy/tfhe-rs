@@ -328,6 +328,10 @@ impl ClientKey {
         ShortintEngine::with_thread_local_mut(|engine| engine.decrypt(self, ct).unwrap())
     }
 
+    pub fn decrypt_raw(&self, ct: &Ciphertext) -> u64 {
+        ShortintEngine::with_thread_local_mut(|engine| engine.decrypt_raw(self, ct).unwrap())
+    }
+
     /// Encrypt a small integer message using the client key without padding bit.
     ///
     /// The input message is reduced to the encrypted message space modulus
